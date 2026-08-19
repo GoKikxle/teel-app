@@ -1,0 +1,16 @@
+-- Guest-driven RSVP cancellation.
+--
+-- paid_sent/paid live on the rsvps row itself, so a hard DELETE on cancel
+-- would destroy payment history along with the RSVP. Cancelling is a soft
+-- delete instead: set cancelled_at, leave every other column untouched.
+-- Re-RSVPing (upsertRsvp) clears cancelled_at back to null on the same row
+-- via ON CONFLICT — it never touches paid_sent/paid — so a guest's payment
+-- status survives a cancel/re-RSVP round trip intact, and the existing
+-- unique (gathering_id, guest_user_id) constraint never blocks a fresh RSVP
+-- since there's still only ever one row per guest per gathering.
+--
+-- "Who's in", guest counts, per-person split, and the paid-progress ring all
+-- filter cancelled_at is null at the application layer (see activeRsvps() in
+-- src/data/gatherings.ts) rather than here, so a cancelled row stays
+-- queryable for the guest's own un-cancel flow.
+alter table rsvps add column cancelled_at timestamptz;

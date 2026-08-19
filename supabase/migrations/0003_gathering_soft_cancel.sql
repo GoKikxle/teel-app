@@ -1,0 +1,17 @@
+-- Organizer-driven gathering cancellation, same soft-cancel pattern as
+-- rsvps (0002_rsvp_soft_cancel.sql): cancelling sets cancelled_at rather than
+-- deleting the row, so every RSVP/cost_item/poll row underneath a cancelled
+-- gathering stays intact — guests who already RSVPed or paid keep that
+-- history visible, just marked as belonging to a cancelled event (see
+-- activeRsvps()-style filtering at the application layer in
+-- src/data/gatherings.ts and the cancelled-state UI in Detail.tsx).
+--
+-- No RLS changes needed: gatherings_update_own already scopes to
+-- organizer_id = auth.uid(), the same ownership check used everywhere else,
+-- and it covers this new column along with all the others.
+--
+-- Hard delete stays a separate action (gatherings_delete_own, unchanged) and
+-- the app additionally refuses to call it whenever the gathering has any
+-- active RSVPs, or any RSVP row (active or cancelled) with payment history —
+-- see getDeleteBlockReason() in src/data/gatherings.ts.
+alter table gatherings add column cancelled_at timestamptz;
