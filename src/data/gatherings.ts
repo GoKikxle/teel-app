@@ -237,10 +237,55 @@ export async function deleteGathering(gathering: Pick<GatheringWithRelations, 'i
   if (error) throw error;
 }
 
+// Cover photos come straight from a phone camera roll with zero processing —
+// seen in production up to 26MB / 7728x5152, EXIF intact. That's not just a
+// page-weight problem: link-preview crawlers (WhatsApp's especially) fetch
+// og:image on their own budget and silently drop the thumbnail (while still
+// showing title/description) if it's too large or slow, which is exactly
+// what surfaced this. So every cover photo gets downscaled and re-encoded
+// as JPEG before it ever reaches Storage — this runs for every upload, not
+// just the ones destined for a link preview, since the same 26MB file was
+// also being downloaded by every browser visiting the board or the
+// gathering's own page.
+const MAX_COVER_DIMENSION = 1600; // px, longest side — plenty for a flyer-sized display, nowhere near camera-original
+const COVER_JPEG_QUALITY_STEPS = [0.82, 0.7, 0.55]; // retried smaller only if the previous pass is still oversized
+const MAX_COVER_BYTES = 1_500_000; // ~1.5MB ceiling, comfortably under known link-preview fetch limits
+
+async function resizeCoverImage(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, MAX_COVER_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas 2D context unavailable');
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    let lastBlob: Blob | null = null;
+    for (const quality of COVER_JPEG_QUALITY_STEPS) {
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      if (!blob) continue;
+      lastBlob = blob;
+      if (blob.size <= MAX_COVER_BYTES) return blob;
+    }
+    // Every quality step ran and it's still over budget (an unusually
+    // busy/detailed photo) — ship the smallest one we got rather than
+    // fail the upload outright.
+    if (!lastBlob) throw new Error('Could not encode cover image');
+    return lastBlob;
+  } finally {
+    bitmap.close();
+  }
+}
+
 export async function uploadCoverImage(file: File, organizerId: string): Promise<string> {
-  const ext = file.name.split('.').pop();
-  const path = `${organizerId}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from('cover-images').upload(path, file);
+  const blob = await resizeCoverImage(file);
+  const path = `${organizerId}/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage.from('cover-images').upload(path, blob, { contentType: 'image/jpeg' });
   if (error) throw error;
   const { data } = supabase.storage.from('cover-images').getPublicUrl(path);
   return data.publicUrl;

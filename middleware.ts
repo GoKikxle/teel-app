@@ -85,9 +85,25 @@ async function fetchGathering(id: string): Promise<GatheringRow | null> {
   return rows[0] ?? null;
 }
 
-function metaResponse(params: { origin: string; path: string; title: string; description: string; image: string }): Response {
-  const { origin, path, title, description, image } = params;
+function metaResponse(params: {
+  origin: string;
+  path: string;
+  title: string;
+  description: string;
+  image: string;
+  // Only known-accurate for the six generated fallback cards in
+  // public/og/*.png (always exactly 1200x630 by construction). A real
+  // uploaded cover photo's actual dimensions aren't known here without
+  // fetching and decoding the image ourselves, and declaring 1200x630
+  // for a photo that's actually e.g. 1400x1400 is just false metadata —
+  // omit the tags entirely rather than assert a size we haven't verified.
+  imageDimensions?: { width: number; height: number };
+}): Response {
+  const { origin, path, title, description, image, imageDimensions } = params;
   const pageUrl = `${origin}${path}`;
+  const dimensionTags = imageDimensions
+    ? `\n<meta property="og:image:width" content="${imageDimensions.width}" />\n<meta property="og:image:height" content="${imageDimensions.height}" />`
+    : '';
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -98,9 +114,7 @@ function metaResponse(params: { origin: string; path: string; title: string; des
 <meta property="og:url" content="${escapeHtml(pageUrl)}" />
 <meta property="og:title" content="${escapeHtml(title)}" />
 <meta property="og:description" content="${escapeHtml(description)}" />
-<meta property="og:image" content="${escapeHtml(image)}" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
+<meta property="og:image" content="${escapeHtml(image)}" />${dimensionTags}
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeHtml(title)}" />
 <meta name="twitter:description" content="${escapeHtml(description)}" />
@@ -141,6 +155,7 @@ export default async function middleware(request: Request): Promise<Response | u
       title: 'Gathering not found — Teel',
       description: 'This gathering may have been removed.',
       image: `${url.origin}/og/other.png`,
+      imageDimensions: { width: 1200, height: 630 },
     });
   }
 
@@ -155,7 +170,15 @@ export default async function middleware(request: Request): Promise<Response | u
     : `${dateLabel}${timeLabel}${locationLabel}`;
 
   const category = KNOWN_CATEGORIES.has(gathering.category) ? gathering.category : 'other';
+  const usingFallback = !gathering.cover_image_url;
   const image = gathering.cover_image_url || `${url.origin}/og/${category}.png`;
 
-  return metaResponse({ origin: url.origin, path: url.pathname, title, description, image });
+  return metaResponse({
+    origin: url.origin,
+    path: url.pathname,
+    title,
+    description,
+    image,
+    imageDimensions: usingFallback ? { width: 1200, height: 630 } : undefined,
+  });
 }
