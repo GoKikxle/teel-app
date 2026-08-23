@@ -125,7 +125,7 @@ export function Detail() {
             )}
           </div>
 
-          <SharePanel gathering={gathering} quickShare={isSplitBill} />
+          {isOrganizer && <SharePanel gathering={gathering} quickShare={isSplitBill} />}
         </div>
 
         <div>
