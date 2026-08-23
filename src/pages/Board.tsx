@@ -16,6 +16,7 @@ export function Board() {
   const [gatherings, setGatherings] = useState<GatheringWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [kindFilter, setKindFilter] = useState<'all' | 'event' | 'split_bill'>('all');
 
   useEffect(() => {
     let mounted = true;
@@ -42,16 +43,23 @@ export function Board() {
     [gatherings, userId]
   );
 
+  // Narrows the same single board in place — not a separate view/URL, just
+  // an optional lens on top of the search filter below.
+  const kindFiltered = useMemo(() => {
+    if (kindFilter === 'all') return activeGatherings;
+    return activeGatherings.filter((g) => g.kind === kindFilter);
+  }, [activeGatherings, kindFilter]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return activeGatherings;
-    return activeGatherings.filter(
+    if (!q) return kindFiltered;
+    return kindFiltered.filter(
       (g) =>
         g.title.toLowerCase().includes(q) ||
         (g.location ?? '').toLowerCase().includes(q) ||
         CATS[g.category].label.toLowerCase().includes(q)
     );
-  }, [activeGatherings, query]);
+  }, [kindFiltered, query]);
 
   return (
     <div className="wrap">
@@ -67,6 +75,24 @@ export function Board() {
       >
         + Split Bill
       </button>
+      <div className="radio-group" style={{ marginBottom: 14 }}>
+        {(
+          [
+            ['all', 'All'],
+            ['event', 'Gatherings'],
+            ['split_bill', 'Bills'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={`radio-chip${kindFilter === key ? ' active' : ''}`}
+            onClick={() => setKindFilter(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
         <input
           type="text"

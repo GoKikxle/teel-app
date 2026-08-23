@@ -19,27 +19,41 @@ export function FlyerCard({ g, onClick }: { g: GatheringWithRelations; onClick: 
 
   return (
     <button
-      className={`flyer${cancelled ? ' flyer-cancelled' : ''}`}
+      className={`flyer${cancelled ? ' flyer-cancelled' : ''}${isSplitBill ? ' flyer-receipt' : ''}`}
       onClick={onClick}
       style={{ '--accent': c.accent, '--accent-dark': c.dark } as React.CSSProperties}
     >
       <div className="pin" />
       {cancelled ? <div className="cancelled-flag">Cancelled</div> : g.cost_enabled && <PaidRing pct={pct} />}
-      {g.cover_image_url && <div className="flyer-photo" style={{ backgroundImage: `url(${g.cover_image_url})` }} />}
+      {/* Event cards only — Split Bill anchors on the amount/progress
+          below instead of a photo slot. */}
+      {!isSplitBill && g.cover_image_url && <div className="flyer-photo" style={{ backgroundImage: `url(${g.cover_image_url})` }} />}
       <div className="stripe" />
       <div className="cat">
-        {c.label} <span className="vis-badge">{v.icon} {v.label}</span>
+        {isSplitBill ? 'Split bill' : c.label} <span className="vis-badge">{v.icon} {v.label}</span>
       </div>
       <div className="title">{g.title}</div>
+
+      {isSplitBill && (
+        <>
+          <div className="receipt-tear" />
+          <div className="receipt-amount">£{splitBillProgress(g).target.toFixed(2)}</div>
+        </>
+      )}
+
       <div className="meta">
-        {fmtDate(g.gathering_date)} · {g.gathering_time || '—'}
-        <br />
-        {g.location || 'TBD'}
-        <br />
         {isSplitBill ? (
-          <>£{splitBillProgress(g).collected.toFixed(2)} of £{splitBillProgress(g).target.toFixed(2)} collected</>
+          <>
+            {fmtDate(g.gathering_date)} · {g.gathering_time || '—'}
+            <br />
+            £{splitBillProgress(g).collected.toFixed(2)} of £{splitBillProgress(g).target.toFixed(2)} collected
+          </>
         ) : (
           <>
+            {fmtDate(g.gathering_date)} · {g.gathering_time || '—'}
+            <br />
+            {g.location || 'TBD'}
+            <br />
             {going.length}/{g.capacity} going
           </>
         )}
