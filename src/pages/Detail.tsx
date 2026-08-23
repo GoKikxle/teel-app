@@ -24,7 +24,7 @@ export function Detail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const previewAsGuest = searchParams.get('preview') === 'guest';
-  const { userId, ready } = useAuth();
+  const { userId, ready, isPersistent } = useAuth();
 
   const [gathering, setGathering] = useState<GatheringWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,9 +92,14 @@ export function Detail() {
 
   return (
     <div className="wrap">
-      <button className="btn-outline" style={{ marginBottom: 20 }} onClick={() => navigate('/')}>
-        ← Back to board
-      </button>
+      {/* Anonymous guests don't have a board — Home.tsx only renders one
+          for signed-in sessions, so this is a no-op destination (Landing)
+          for them and shouldn't be offered at all. */}
+      {isPersistent && (
+        <button className="btn-outline" style={{ marginBottom: 20 }} onClick={() => navigate('/')}>
+          ← Back to board
+        </button>
+      )}
       <div className="detail-top">
         <div>
           <div className="hero-flyer" style={{ '--accent': c.accent, '--accent-dark': c.dark } as React.CSSProperties}>

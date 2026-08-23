@@ -3,6 +3,8 @@ import type { GatheringWithRelations, Rsvp } from '../../lib/database.types';
 import { payLabel, buildPayUrl } from '../../lib/constants';
 import { markPaid, markPaidSent, splitBillPerPerson, upsertSplitBillPayment } from '../../data/gatherings';
 import { useToast } from '../../hooks/useToast';
+import { useCreateGate } from '../../hooks/useCreateGate';
+import { SignInModal } from '../SignInModal';
 
 // Guest-facing view for a Split Bill gathering — replaces RsvpPanel entirely.
 // No name is ever collected: the payment record (a bare rsvps row) is
@@ -22,9 +24,14 @@ export function SplitBillPayPanel({
   onChange: () => void;
 }) {
   const toast = useToast();
+  const splitBillGate = useCreateGate('/split/create');
   const isDutch = gathering.split_method === 'dutch';
   const [amount, setAmount] = useState(() => (myRsvp?.amount_owed != null ? String(myRsvp.amount_owed) : ''));
   const [sending, setSending] = useState(false);
+  // Local only, never derived from myRsvp.paid — a reload always shows the
+  // normal "Confirmed ✓ · undo" state, this one-time screen is purely the
+  // immediate result of this session's own confirm click.
+  const [justConfirmed, setJustConfirmed] = useState(false);
 
   const fixedAmount = isDutch ? null : splitBillPerPerson(gathering);
   const amountNumber = isDutch ? Number(amount) : (fixedAmount as number);
@@ -52,13 +59,43 @@ export function SplitBillPayPanel({
 
   async function handleConfirm() {
     if (!myRsvp) return;
+    const nextPaid = !myRsvp.paid;
     try {
-      await markPaid(myRsvp.id, !myRsvp.paid);
+      await markPaid(myRsvp.id, nextPaid);
+      if (nextPaid) setJustConfirmed(true);
       onChange();
     } catch (err) {
       console.error(err);
       toast('Could not update payment status');
     }
+  }
+
+  if (justConfirmed) {
+    return (
+      <div className="panel" style={{ textAlign: 'center' }}>
+        <div className="success-check">✓</div>
+        <h2>Payment confirmed</h2>
+        <p className="lede" style={{ margin: '0 auto 18px' }}>
+          You're all set — the organizer can see you've paid.
+        </p>
+        <button
+          className="primary-btn"
+          style={{ width: 'auto', padding: '12px 26px', marginBottom: 10 }}
+          onClick={splitBillGate.requestCreate}
+        >
+          Split your own bill — just as easy
+        </button>
+        <br />
+        <button className="btn-outline" onClick={() => setJustConfirmed(false)}>
+          Back to bill
+        </button>
+        <SignInModal
+          open={splitBillGate.open}
+          onClose={splitBillGate.close}
+          message="Sign in to create and manage your split bill."
+        />
+      </div>
+    );
   }
 
   return (
