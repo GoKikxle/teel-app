@@ -35,6 +35,27 @@ export async function fetchGathering(id: string): Promise<GatheringWithRelations
   return data as unknown as GatheringWithRelations | null;
 }
 
+export interface ClosedGatheringSummary {
+  id: string;
+  title: string;
+  kind: GatheringKind;
+  created_at: string;
+}
+
+// Lean, organizer-scoped list for the Board's "Closed" reference view — just
+// enough for title/type/date rows, not the full joined DETAIL_SELECT those
+// rows never need.
+export async function fetchClosedGatherings(organizerId: string): Promise<ClosedGatheringSummary[]> {
+  const { data, error } = await supabase
+    .from('gatherings')
+    .select('id, title, kind, created_at')
+    .eq('organizer_id', organizerId)
+    .not('cancelled_at', 'is', null)
+    .order('cancelled_at', { ascending: false });
+  if (error) throw error;
+  return data as ClosedGatheringSummary[];
+}
+
 // Single-column lookup for Nav's contextual CTA (Split Bill vs New
 // Gathering) when an anonymous visitor is looking at a gathering — avoids
 // duplicating fetchGathering's full joined select just to read one field.
@@ -338,13 +359,16 @@ export async function syncInvitedEmails(gatheringId: string, emails: string[], e
 // delete would destroy forever. Cancel is the reversible-in-spirit way to
 // take a gathering down without doing that; this returns the reason so the
 // UI can show it rather than just disabling the button silently.
-export function getDeleteBlockReason(gathering: Pick<GatheringWithRelations, 'rsvps'>): string | null {
+export function getDeleteBlockReason(gathering: Pick<GatheringWithRelations, 'rsvps' | 'kind'>): string | null {
+  const isSplitBill = gathering.kind === 'split_bill';
+  const noun = isSplitBill ? 'bill' : 'gathering';
+  const closeVerb = isSplitBill ? 'Close' : 'Cancel';
   const active = activeRsvps(gathering).length;
   if (active > 0) {
-    return `${active} guest${active === 1 ? ' has' : 's have'} an active RSVP. Cancel the gathering instead — delete is only for gatherings with no guests.`;
+    return `${active} guest${active === 1 ? ' has' : 's have'} an active RSVP. ${closeVerb} the ${noun} instead — delete is only for ${noun}s with no guests.`;
   }
   if (gathering.rsvps.some((r) => r.paid_sent || r.paid)) {
-    return 'A guest has payment history on this gathering (including a cancelled RSVP). Cancel instead of deleting so that history stays visible.';
+    return `A guest has payment history on this ${noun} (including a cancelled RSVP). ${closeVerb.toLowerCase()} instead of deleting so that history stays visible.`;
   }
   return null;
 }
@@ -353,7 +377,7 @@ export function getDeleteBlockReason(gathering: Pick<GatheringWithRelations, 'rs
 // invited_emails -> gatherings) all cascade, so the row delete alone cleans
 // up every related table. Postgres cascade can't reach Supabase Storage
 // though, so the cover image has to be removed explicitly first.
-export async function deleteGathering(gathering: Pick<GatheringWithRelations, 'id' | 'cover_image_url' | 'rsvps'>) {
+export async function deleteGathering(gathering: Pick<GatheringWithRelations, 'id' | 'cover_image_url' | 'rsvps' | 'kind'>) {
   const blockReason = getDeleteBlockReason(gathering);
   if (blockReason) throw new Error(blockReason);
   await deleteCoverImage(gathering.cover_image_url);

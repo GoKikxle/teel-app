@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchBoardGatherings } from '../data/gatherings';
 import type { GatheringWithRelations } from '../lib/database.types';
 import { CATS } from '../lib/constants';
 import { FlyerCard } from '../components/FlyerCard';
 import { SignInModal } from '../components/SignInModal';
 import { useCreateGate } from '../hooks/useCreateGate';
+import { useAuth } from '../hooks/useAuth';
 
 export function Board() {
   const navigate = useNavigate();
+  const { userId, isPersistent } = useAuth();
   const { open, requestCreate, close } = useCreateGate();
   const splitBillGate = useCreateGate('/split/create');
   const [gatherings, setGatherings] = useState<GatheringWithRelations[]>([]);
@@ -30,16 +32,26 @@ export function Board() {
     };
   }, []);
 
+  // The board only shows active items — gatherings and split bills share
+  // the same cancelled_at mechanism, so one filter covers both. Closed
+  // items move to the dedicated /closed reference list instead.
+  const activeGatherings = useMemo(() => gatherings.filter((g) => !g.cancelled_at), [gatherings]);
+
+  const myClosedCount = useMemo(
+    () => gatherings.filter((g) => g.cancelled_at && g.organizer_id === userId).length,
+    [gatherings, userId]
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return gatherings;
-    return gatherings.filter(
+    if (!q) return activeGatherings;
+    return activeGatherings.filter(
       (g) =>
         g.title.toLowerCase().includes(q) ||
         (g.location ?? '').toLowerCase().includes(q) ||
         CATS[g.category].label.toLowerCase().includes(q)
     );
-  }, [gatherings, query]);
+  }, [activeGatherings, query]);
 
   return (
     <div className="wrap">
@@ -55,13 +67,29 @@ export function Board() {
       >
         + Split Bill
       </button>
-      <input
-        type="text"
-        className="board-search"
-        placeholder="Search gatherings…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
+        <input
+          type="text"
+          className="board-search"
+          style={{ marginBottom: 0, flex: 1 }}
+          placeholder="Search gatherings…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {isPersistent && (
+          <Link
+            to="/closed"
+            style={{
+              fontFamily: "'Space Mono', monospace",
+              fontSize: 13,
+              color: 'var(--ink-faint)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Closed ({myClosedCount})
+          </Link>
+        )}
+      </div>
       {loading ? (
         <p className="lede">Loading…</p>
       ) : (
