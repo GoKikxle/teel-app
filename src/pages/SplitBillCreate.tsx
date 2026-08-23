@@ -20,7 +20,10 @@ export function SplitBillCreate() {
   const toast = useToast();
 
   const [step, setStep] = useState(1);
+  const [label, setLabel] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
+  const [dateMode, setDateMode] = useState<'today' | 'custom'>('today');
+  const [customDate, setCustomDate] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('2');
   const [splitMethod, setSplitMethod] = useState<'equal' | 'dutch'>('equal');
   const [payMethod, setPayMethod] = useState<PayMethod>('venmo');
@@ -31,12 +34,14 @@ export function SplitBillCreate() {
   const amountNumber = Number(totalAmount) || 0;
   const peopleNumber = Number(numberOfPeople) || 0;
   const perPerson = peopleNumber > 0 ? amountNumber / peopleNumber : 0;
+  const dateReady = dateMode === 'today' || Boolean(customDate);
 
-  const canAdvance = (step === 1 && amountNumber > 0) || (step === 2 && peopleNumber > 0) || step === 3 || step === 4;
+  const canAdvance = (step === 1 && amountNumber > 0 && dateReady) || (step === 2 && peopleNumber > 0) || step === 3 || step === 4;
 
   function next() {
     if (!canAdvance) {
-      toast(step === 1 ? 'Enter a total amount' : 'Enter how many people are splitting');
+      if (step === 1) toast(amountNumber > 0 ? 'Pick a date' : 'Enter a total amount');
+      else toast('Enter how many people are splitting');
       return;
     }
     setStep((s) => Math.min(TOTAL_STEPS, s + 1));
@@ -55,6 +60,8 @@ export function SplitBillCreate() {
     try {
       const id = await createSplitBill({
         organizerId: userId,
+        title: label.trim() || undefined,
+        date: dateMode === 'custom' ? customDate : undefined,
         totalAmount: amountNumber,
         numberOfPeople: peopleNumber,
         splitMethod,
@@ -122,6 +129,15 @@ export function SplitBillCreate() {
           <>
             <h2>Total amount</h2>
             <div className="field">
+              <label>Label</label>
+              <input
+                type="text"
+                placeholder="What's this for? (optional)"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+              />
+            </div>
+            <div className="field">
               <label>Total cost (£)</label>
               <input
                 type="number"
@@ -130,6 +146,33 @@ export function SplitBillCreate() {
                 onChange={(e) => setTotalAmount(e.target.value)}
                 autoFocus
               />
+            </div>
+            <div className="field">
+              <label>Date</label>
+              <div className="radio-group">
+                <button
+                  type="button"
+                  className={`radio-chip${dateMode === 'today' ? ' active' : ''}`}
+                  onClick={() => setDateMode('today')}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  className={`radio-chip${dateMode === 'custom' ? ' active' : ''}`}
+                  onClick={() => setDateMode('custom')}
+                >
+                  Different date
+                </button>
+              </div>
+              {dateMode === 'custom' && (
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  style={{ marginTop: 10 }}
+                />
+              )}
             </div>
           </>
         )}

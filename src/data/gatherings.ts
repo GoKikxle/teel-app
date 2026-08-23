@@ -123,6 +123,11 @@ export async function createGathering(input: CreateGatheringInput): Promise<stri
 
 export interface CreateSplitBillInput {
   organizerId: string;
+  // Both optional: omit title for the auto-generated one below, omit date
+  // for today. Split Bill never asks for a time at all (unlike the full
+  // flow) — gathering_time is always just whatever time it was created.
+  title?: string;
+  date?: string; // YYYY-MM-DD
   totalAmount: number;
   numberOfPeople: number;
   splitMethod: 'equal' | 'dutch';
@@ -130,20 +135,22 @@ export interface CreateSplitBillInput {
   payHandle: string;
 }
 
-function splitBillTitle(now: Date): string {
+function splitBillTitle(dateStr: string): string {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `Split bill · ${now.getDate()} ${months[now.getMonth()]}`;
+  const d = new Date(`${dateStr}T00:00`);
+  return `Split bill · ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
 export async function createSplitBill(input: CreateSplitBillInput): Promise<string> {
   const now = new Date();
+  const gatheringDate = input.date || now.toISOString().slice(0, 10);
   const { data: gathering, error } = await supabase
     .from('gatherings')
     .insert({
       organizer_id: input.organizerId,
-      title: splitBillTitle(now),
+      title: input.title?.trim() || splitBillTitle(gatheringDate),
       category: 'other',
-      gathering_date: now.toISOString().slice(0, 10),
+      gathering_date: gatheringDate,
       gathering_time: now.toTimeString().slice(0, 5),
       location: null,
       capacity: input.numberOfPeople,
