@@ -114,6 +114,113 @@ export async function createGathering(input: CreateGatheringInput): Promise<stri
   return gatheringId;
 }
 
+// --- Split Bill -----------------------------------------------------------
+// The lightweight quick-create flow: an amount, a split rule, a payment
+// link — no RSVPs, no names, no guest list. Shares the gatherings table
+// (kind = 'split_bill' is what Detail.tsx/FlyerCard.tsx key off of) rather
+// than a separate table, so cancel/delete and the cost columns all work
+// the same way they already do for a full gathering.
+
+export interface CreateSplitBillInput {
+  organizerId: string;
+  totalAmount: number;
+  numberOfPeople: number;
+  splitMethod: 'equal' | 'dutch';
+  payMethod: PayMethod;
+  payHandle: string;
+}
+
+function splitBillTitle(now: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `Split bill · ${now.getDate()} ${months[now.getMonth()]}`;
+}
+
+export async function createSplitBill(input: CreateSplitBillInput): Promise<string> {
+  const now = new Date();
+  const { data: gathering, error } = await supabase
+    .from('gatherings')
+    .insert({
+      organizer_id: input.organizerId,
+      title: splitBillTitle(now),
+      category: 'other',
+      gathering_date: now.toISOString().slice(0, 10),
+      gathering_time: now.toTimeString().slice(0, 5),
+      location: null,
+      capacity: input.numberOfPeople,
+      cover_image_url: null,
+      visibility: 'private',
+      cost_enabled: true,
+      cost_mode: 'split_pay',
+      cost_total: input.totalAmount,
+      split_method: input.splitMethod,
+      pay_mode: 'direct',
+      pay_method: input.payMethod,
+      pay_handle: input.payHandle || null,
+      poll_enabled: false,
+      kind: 'split_bill',
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return gathering.id as string;
+}
+
+// Silently creates (or updates) a guest's bare payment record — no name,
+// no phone — the moment they interact with the pay flow, keyed on
+// (gathering_id, guest_user_id) exactly like upsertRsvp. amountOwed is only
+// ever meaningful for split_method = 'dutch'; omit it for 'equal', where
+// the per-person share is always computed live from cost_total instead of
+// stored per row. Returns the row's id so the caller can immediately follow
+// up with markPaidSent/markPaid.
+export async function upsertSplitBillPayment(
+  gatheringId: string,
+  guestUserId: string,
+  amountOwed?: number
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('rsvps')
+    .upsert(
+      { gathering_id: gatheringId, guest_user_id: guestUserId, name: '', amount_owed: amountOwed ?? null, cancelled_at: null },
+      { onConflict: 'gathering_id,guest_user_id' }
+    )
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+// Equal-split share, computed live and never stored — used both for what a
+// guest owes (SplitBillPayPanel) and for totaling up equal-split progress
+// (splitBillProgress below).
+export function splitBillPerPerson(gathering: Pick<Gathering, 'cost_total' | 'capacity'>): number {
+  return gathering.cost_total / Math.max(gathering.capacity, 1);
+}
+
+export interface SplitBillProgress {
+  paidCount: number;
+  targetCount: number;
+  collected: number;
+  target: number;
+}
+
+// Deliberately *not* paidPct/activeRsvps-percentage math: that computes
+// progress against however many guests have shown up so far, but a Split
+// Bill's "X of Y paid" is against the organizer's target headcount
+// (capacity) and target total (cost_total), which won't generally equal
+// the number of payment records that exist yet.
+export function splitBillProgress(
+  gathering: Pick<GatheringWithRelations, 'rsvps' | 'capacity' | 'cost_total' | 'split_method'>
+): SplitBillProgress {
+  const paid = activeRsvps(gathering).filter((r) => r.paid);
+  const collected =
+    gathering.split_method === 'dutch'
+      ? paid.reduce((sum, r) => sum + Number(r.amount_owed ?? 0), 0)
+      : paid.length * splitBillPerPerson(gathering);
+
+  return { paidCount: paid.length, targetCount: gathering.capacity, collected, target: gathering.cost_total };
+}
+
 export interface UpdateGatheringInput {
   title: string;
   category: Category;

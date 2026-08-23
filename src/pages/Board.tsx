@@ -10,6 +10,7 @@ import { useCreateGate } from '../hooks/useCreateGate';
 export function Board() {
   const navigate = useNavigate();
   const { open, requestCreate, close } = useCreateGate();
+  const splitBillGate = useCreateGate('/split/create');
   const [gatherings, setGatherings] = useState<GatheringWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -47,6 +48,13 @@ export function Board() {
       <p className="lede">
         Every gathering here is one shared link — no app, no account, no branding. Just RSVP, split, vote.
       </p>
+      <button
+        className="primary-btn"
+        style={{ width: 'auto', padding: '13px 26px', marginBottom: 18 }}
+        onClick={splitBillGate.requestCreate}
+      >
+        + Split Bill
+      </button>
       <input
         type="text"
         className="board-search"
@@ -68,6 +76,11 @@ export function Board() {
       )}
 
       <SignInModal open={open} onClose={close} message="Sign in to create and manage your gathering." />
+      <SignInModal
+        open={splitBillGate.open}
+        onClose={splitBillGate.close}
+        message="Sign in to create and manage your split bill."
+      />
     </div>
   );
 }

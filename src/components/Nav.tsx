@@ -13,6 +13,7 @@ export function Nav() {
   const { isPersistent, email, signOut } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const createGate = useCreateGate();
+  const splitBillGate = useCreateGate('/split/create');
 
   async function handleInstall() {
     const outcome = await promptInstall();
@@ -67,8 +68,11 @@ export function Nav() {
           <Link to="/" className="navbtn ghost" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
             Board
           </Link>
-          <button className="navbtn" onClick={createGate.requestCreate}>
+          <button className="navbtn ghost" onClick={createGate.requestCreate}>
             + New gathering
+          </button>
+          <button className="navbtn" onClick={splitBillGate.requestCreate}>
+            + Split Bill
           </button>
         </div>
       </nav>
@@ -77,6 +81,11 @@ export function Nav() {
         open={createGate.open}
         onClose={createGate.close}
         message="Sign in to create and manage your gathering."
+      />
+      <SignInModal
+        open={splitBillGate.open}
+        onClose={splitBillGate.close}
+        message="Sign in to create and manage your split bill."
       />
     </>
   );

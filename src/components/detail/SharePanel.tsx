@@ -1,8 +1,12 @@
 import type { GatheringWithRelations } from '../../lib/database.types';
 import { CATS, VIS, fmtDate } from '../../lib/constants';
 import { useToast } from '../../hooks/useToast';
+import { QRCode } from '../QRCode';
 
-export function SharePanel({ gathering }: { gathering: GatheringWithRelations }) {
+// quickShare adds a real WhatsApp share action and a QR code, for Split
+// Bill's share screen — omit it (the full-flow call site on Detail.tsx
+// does) and this renders exactly as it always has.
+export function SharePanel({ gathering, quickShare = false }: { gathering: GatheringWithRelations; quickShare?: boolean }) {
   const toast = useToast();
   const c = CATS[gathering.category];
   const v = VIS[gathering.visibility];
@@ -29,6 +33,20 @@ export function SharePanel({ gathering }: { gathering: GatheringWithRelations })
           Copy link
         </button>
       </div>
+      {quickShare && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+          <a
+            className="btn-outline"
+            style={{ textDecoration: 'none', display: 'inline-block' }}
+            href={`https://wa.me/?text=${encodeURIComponent(`${gathering.title} — ${link}`)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Share via WhatsApp
+          </a>
+          <QRCode value={link} size={120} />
+        </div>
+      )}
       <div className="chat-mock">
         <div className="chat-card">
           <div

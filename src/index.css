@@ -49,6 +49,12 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 h1 { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 34px; letter-spacing: .3px; margin: 8px 0 4px; line-height: 1.05; }
 h2 { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 20px; letter-spacing: .3px; margin: 0 0 12px; }
 .eyebrow { font-family: 'Space Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-faint); margin: 0 0 6px; }
+
+/* Split Bill step wizard */
+.wizard-steps { display: flex; gap: 8px; margin: 18px 0 22px; }
+.wizard-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .18s var(--ease); }
+.wizard-dot.active { background: var(--clay); }
+.wizard-dot.done { background: var(--ink-soft); }
 .lede { color: var(--ink-soft); font-size: 15px; max-width: 46ch; margin: 0 0 28px; }
 
 /* Board grid */

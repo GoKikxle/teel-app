@@ -1,9 +1,16 @@
 export type Category = 'hike' | 'brunch' | 'game' | 'dj' | 'poetry' | 'other';
 export type Visibility = 'public' | 'private' | 'invited';
 export type CostMode = 'split_pay' | 'get_tix';
-export type SplitMethod = 'equal' | 'custom' | 'itemized';
+// 'dutch': each guest types their own amount (Split Bill only) rather than
+// Teel computing an equal share or the organizer setting one per person.
+export type SplitMethod = 'equal' | 'custom' | 'itemized' | 'dutch';
 export type PayMode = 'direct' | 'stripe';
 export type PayMethod = 'venmo' | 'paypal' | 'cashapp' | 'monzo' | 'revolut';
+// 'event': the full "New gathering" flow (RSVPs, guest list, poll, invites).
+// 'split_bill': the lightweight quick-create flow — no RSVPs/names/guest
+// list, just an amount and a payment link. Drives which panels Detail.tsx
+// and FlyerCard.tsx render.
+export type GatheringKind = 'event' | 'split_bill';
 
 export interface Gathering {
   id: string;
@@ -35,6 +42,7 @@ export interface Gathering {
    *  src/data/gatherings.ts, which uses this to keep hard delete from
    *  destroying payment history. */
   cancelled_at: string | null;
+  kind: GatheringKind;
 }
 
 export interface Rsvp {
@@ -51,6 +59,10 @@ export interface Rsvp {
    *  either transition — see activeRsvps() for where cancelled rows get
    *  filtered out of "who's in" / counts / the paid-progress ring. */
   cancelled_at: string | null;
+  /** Split Bill ("dutch" split_method) only: what this guest typed as what
+   *  they owe. Null for every other split_method — an equal-split guest's
+   *  amount is always computed live from cost_total, never stored here. */
+  amount_owed: number | null;
 }
 
 export interface CostItem {

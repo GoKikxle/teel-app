@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { activeRsvps, fetchGathering } from '../data/gatherings';
+import { activeRsvps, fetchGathering, splitBillProgress } from '../data/gatherings';
 import type { GatheringWithRelations } from '../lib/database.types';
 import { useAuth } from '../hooks/useAuth';
 import { CATS, VIS, fmtDate } from '../lib/constants';
@@ -12,6 +12,8 @@ import { SharePanel } from '../components/detail/SharePanel';
 import { InviteGate } from '../components/detail/InviteGate';
 import { OrganizerPanel } from '../components/detail/OrganizerPanel';
 import { CancelledPanel } from '../components/detail/CancelledPanel';
+import { SplitBillPayPanel } from '../components/detail/SplitBillPayPanel';
+import { SplitBillProgressPanel } from '../components/detail/SplitBillProgressPanel';
 
 function gateKey(gatheringId: string) {
   return `teel-gate-${gatheringId}`;
@@ -81,6 +83,7 @@ export function Detail() {
   const c = CATS[gathering.category];
   const v = VIS[gathering.visibility];
   const isCancelled = Boolean(gathering.cancelled_at);
+  const isSplitBill = gathering.kind === 'split_bill';
   const going = activeRsvps(gathering);
   // Only an active RSVP counts as "mine" — a cancelled row for this user
   // still exists (for its payment history), but the UI should treat it the
@@ -106,14 +109,23 @@ export function Detail() {
               <br />
               {gathering.location || 'TBD'}
               <br />
-              {going.length}/{gathering.capacity} going
+              {isSplitBill ? (
+                <>
+                  £{splitBillProgress(gathering).collected.toFixed(2)} of £{splitBillProgress(gathering).target.toFixed(2)}{' '}
+                  collected
+                </>
+              ) : (
+                <>
+                  {going.length}/{gathering.capacity} going
+                </>
+              )}
             </div>
             {gathering.cover_image_url && (
               <div className="flyer-photo" style={{ backgroundImage: `url(${gathering.cover_image_url})` }} />
             )}
           </div>
 
-          <SharePanel gathering={gathering} />
+          <SharePanel gathering={gathering} quickShare={isSplitBill} />
         </div>
 
         <div>
@@ -121,6 +133,12 @@ export function Detail() {
 
           {isCancelled ? (
             <CancelledPanel gathering={gathering} />
+          ) : isSplitBill ? (
+            isOrganizer ? (
+              <SplitBillProgressPanel gathering={gathering} />
+            ) : (
+              userId && <SplitBillPayPanel gathering={gathering} userId={userId} myRsvp={myRsvp} onChange={load} />
+            )
           ) : (
             <>
               {userId && <RsvpPanel gathering={gathering} userId={userId} myRsvp={myRsvp} onChange={load} />}
@@ -133,7 +151,7 @@ export function Detail() {
             </>
           )}
 
-          {gathering.cost_enabled && (
+          {!isSplitBill && gathering.cost_enabled && (
             <SplitPayPanel gathering={gathering} myRsvp={myRsvp} onChange={load} readOnly={isCancelled} />
           )}
         </div>
