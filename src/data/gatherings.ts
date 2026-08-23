@@ -3,6 +3,7 @@ import type {
   Category,
   CostItem,
   Gathering,
+  GatheringKind,
   GatheringWithRelations,
   InvitedEmail,
   PayMethod,
@@ -32,6 +33,15 @@ export async function fetchGathering(id: string): Promise<GatheringWithRelations
   const { data, error } = await supabase.from('gatherings').select(DETAIL_SELECT).eq('id', id).maybeSingle();
   if (error) throw error;
   return data as unknown as GatheringWithRelations | null;
+}
+
+// Single-column lookup for Nav's contextual CTA (Split Bill vs New
+// Gathering) when an anonymous visitor is looking at a gathering — avoids
+// duplicating fetchGathering's full joined select just to read one field.
+export async function fetchGatheringKind(id: string): Promise<GatheringKind | null> {
+  const { data, error } = await supabase.from('gatherings').select('kind').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return (data?.kind as GatheringKind | undefined) ?? null;
 }
 
 export interface CreateGatheringInput {
