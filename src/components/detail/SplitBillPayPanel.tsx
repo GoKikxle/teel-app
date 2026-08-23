@@ -80,14 +80,10 @@ export function SplitBillPayPanel({
         </p>
         <button
           className="primary-btn"
-          style={{ width: 'auto', padding: '12px 26px', marginBottom: 10 }}
+          style={{ width: 'auto', padding: '12px 26px' }}
           onClick={splitBillGate.requestCreate}
         >
-          Split your own bill — just as easy
-        </button>
-        <br />
-        <button className="btn-outline" onClick={() => setJustConfirmed(false)}>
-          Back to bill
+          Split a bill
         </button>
         <SignInModal
           open={splitBillGate.open}
