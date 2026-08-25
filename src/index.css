@@ -8,15 +8,20 @@
   --dot: rgba(26, 26, 26, .12);
 
   /* Neutrals-first ink/surface scale — replaces the old warm-brown
-     ink/paper/card trio with true neutral greys and white surfaces. */
+     ink/paper/card trio with true neutral greys and white surfaces.
+     --ink-hover is the hover companion for solid ink-black buttons/tabs,
+     paired the same way --accent-strong pairs with --accent below. */
   --ink: #1A1A1A;
+  --ink-hover: #333333;
   --ink-soft: #5B5B60;
   --ink-faint: #8B8B90;
   --card: #FFFFFF;
   --paper: #FFFFFF;
 
-  /* The one brand accent — reserved for primary actions, active/selected
-     states, and hero (monetary) numbers. Never used for category coding. */
+  /* The brand accent — reserved for hero (monetary) numbers and a handful
+     of non-button/tab active states (switches, poll bars, mode-card
+     borders, category chips). Buttons and filter tabs use --ink/--ink-hover
+     instead, not this. Never used for category coding. */
   --accent: #F23506;
   --accent-strong: #BC330C;
 
@@ -61,8 +66,8 @@ button { font-family: inherit; }
 /* Nav */
 nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 20px; max-width: 960px; margin: 0 auto; }
 .word { font-size: 26px; font-weight: 800; letter-spacing: .2px; cursor: pointer; background: none; border: none; color: var(--ink); padding: 0; }
-.navbtn { font-size: 13px; font-weight: 700; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 10px 16px; cursor: pointer; letter-spacing: .01em; transition: background .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
-.navbtn:hover { background: var(--accent-strong); box-shadow: var(--elevation-1); }
+.navbtn { font-size: 13px; font-weight: 700; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 10px 16px; cursor: pointer; letter-spacing: .01em; transition: background .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
+.navbtn:hover { background: var(--ink-hover); box-shadow: var(--elevation-1); }
 .navbtn:active { transform: scale(.96); }
 .navbtn.ghost { background: none; color: var(--ink-soft); border: 1px solid var(--line); }
 .navbtn.ghost:hover { background: none; }
@@ -161,7 +166,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .subfields { padding: 12px 14px 2px; border-left: 2px solid var(--line); margin: -4px 0 14px 6px; }
 .radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .radio-chip { font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: 16px; border: 1px solid var(--line); cursor: pointer; background: var(--card); color: var(--ink); }
-.radio-chip.active { background: var(--accent); color: #fff; border-color: transparent; }
+.radio-chip.active { background: var(--ink); color: #fff; border-color: transparent; }
 .radio-chip.disabled { opacity: .45; cursor: not-allowed; }
 .mode-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .mode-card { text-align: left; background: var(--card); border: 1.5px solid transparent; box-shadow: var(--elevation-1); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; font-family: inherit; }
@@ -206,8 +211,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .invite-actions a, .invite-actions button { font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; text-decoration: none; padding: 2px 4px; }
 .invite-actions .item-remove { color: var(--ink-faint); font-size: 15px; }
 .opt-input { margin-bottom: 8px; }
-.primary-btn { font-weight: 700; font-size: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 13px 22px; cursor: pointer; width: 100%; letter-spacing: .01em; margin-top: 6px; transition: background .18s var(--ease), transform .12s var(--ease), box-shadow .18s var(--ease); }
-.primary-btn:hover { background: var(--accent-strong); box-shadow: var(--elevation-1); }
+.primary-btn { font-weight: 700; font-size: 14px; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 13px 22px; cursor: pointer; width: 100%; letter-spacing: .01em; margin-top: 6px; transition: background .18s var(--ease), transform .12s var(--ease), box-shadow .18s var(--ease); }
+.primary-btn:hover { background: var(--ink-hover); box-shadow: var(--elevation-1); }
 .primary-btn:active { transform: scale(.97); }
 .primary-btn:disabled { opacity: .5; cursor: not-allowed; }
 
