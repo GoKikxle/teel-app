@@ -1,5 +1,5 @@
 import type { GatheringWithRelations } from '../../lib/database.types';
-import { CATS, VIS, fmtDate } from '../../lib/constants';
+import { VIS, fmtDate } from '../../lib/constants';
 import { useToast } from '../../hooks/useToast';
 import { QRCode } from '../QRCode';
 
@@ -8,7 +8,6 @@ import { QRCode } from '../QRCode';
 // does) and this renders exactly as it always has.
 export function SharePanel({ gathering, quickShare = false }: { gathering: GatheringWithRelations; quickShare?: boolean }) {
   const toast = useToast();
-  const c = CATS[gathering.category];
   const v = VIS[gathering.visibility];
   const link = `${window.location.origin}/g/${gathering.id}`;
 
@@ -51,12 +50,11 @@ export function SharePanel({ gathering, quickShare = false }: { gathering: Gathe
         <div className="chat-card">
           <div
             className="thumb"
-            style={{
-              background: c.accent,
-              ...(gathering.cover_image_url
+            style={
+              gathering.cover_image_url
                 ? { backgroundImage: `url(${gathering.cover_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                : {}),
-            }}
+                : undefined
+            }
           />
           <div className="body">
             <p className="t">{gathering.title}</p>

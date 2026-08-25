@@ -53,7 +53,7 @@ export function ClosedItems() {
           {items.map((item) => (
             <Link key={item.id} to={`/g/${item.id}`} className="paid-item" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span>{item.title}</span>
-              <span style={{ display: 'flex', gap: 14, fontFamily: "'Space Mono', monospace", fontSize: 12, color: 'var(--ink-faint)' }}>
+              <span style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--ink-faint)' }}>
                 <span>{item.kind === 'split_bill' ? 'Split Bill' : 'Gathering'}</span>
                 <span>
                   {new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

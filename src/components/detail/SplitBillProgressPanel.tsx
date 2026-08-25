@@ -14,9 +14,9 @@ export function SplitBillProgressPanel({ gathering }: { gathering: GatheringWith
       <p className="capline">
         {paidCount} of {targetCount} paid
       </p>
-      <p style={{ fontFamily: "'Anton', sans-serif", fontSize: 30, margin: '0 0 4px' }}>
+      <p style={{ fontWeight: 800, fontSize: 30, color: 'var(--accent)', margin: '0 0 4px' }}>
         £{collected.toFixed(2)}{' '}
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 14, color: 'var(--ink-faint)' }}>
+        <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--ink-faint)' }}>
           of £{target.toFixed(2)} collected
         </span>
       </p>

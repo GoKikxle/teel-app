@@ -1,12 +1,15 @@
 import type { Category, PayMethod, Visibility } from './database.types';
 
-export const CATS: Record<Category, { label: string; accent: string; dark: string }> = {
-  hike: { label: 'Hike & trip', accent: 'var(--moss)', dark: 'var(--moss)' },
-  brunch: { label: 'Brunch', accent: 'var(--marigold)', dark: 'var(--marigold)' },
-  game: { label: 'Game night', accent: 'var(--violet)', dark: 'var(--violet)' },
-  dj: { label: 'DJ session', accent: 'var(--clay)', dark: 'var(--clay)' },
-  poetry: { label: 'Poetry night', accent: 'var(--berry)', dark: 'var(--berry)' },
-  other: { label: 'Gathering', accent: 'var(--ink-faint)', dark: 'var(--ink-soft)' },
+// Categories are text-only now — no per-category accent color. The one
+// brand accent is reserved for primary actions/active states/hero numbers,
+// never category coding (see src/index.css's :root token comments).
+export const CATS: Record<Category, { label: string }> = {
+  hike: { label: 'Hike & trip' },
+  brunch: { label: 'Brunch' },
+  game: { label: 'Game night' },
+  dj: { label: 'DJ session' },
+  poetry: { label: 'Poetry night' },
+  other: { label: 'Gathering' },
 };
 
 export const VIS: Record<Visibility, { label: string; icon: string; desc: string }> = {
@@ -23,7 +26,9 @@ export const PAY_LABELS: Record<PayMethod, string> = {
   revolut: 'Revolut',
 };
 
-export const AVATAR_COLORS = ['var(--moss)', 'var(--marigold)', 'var(--violet)', 'var(--clay)', 'var(--berry)'];
+// Rotating neutral shades so adjacent avatars in a stack stay visually
+// distinct without reintroducing category-style multi-hue color coding.
+export const AVATAR_COLORS = ['#1A1A1A', '#5B5B60', '#8B8B90', '#3D3D40', '#707075'];
 
 export function payLabel(method: PayMethod | null): string {
   return method ? PAY_LABELS[method] : 'payment link';

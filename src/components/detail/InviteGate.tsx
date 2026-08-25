@@ -52,7 +52,7 @@ export function InviteGate({
           {gathering.title} is only visible to people the organizer invited. Enter your email to check access.
         </p>
         <input type="text" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <div style={{ fontSize: 13, color: 'var(--clay)', minHeight: 18, marginBottom: 10 }}>{message}</div>
+        <div style={{ fontSize: 13, color: 'var(--danger)', minHeight: 18, marginBottom: 10 }}>{message}</div>
         <button className="primary-btn" style={{ width: 'auto', padding: '12px 26px' }} onClick={handleCheck} disabled={checking}>
           Continue
         </button>

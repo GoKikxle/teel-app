@@ -21,7 +21,6 @@ export function FlyerCard({ g, onClick }: { g: GatheringWithRelations; onClick: 
     <button
       className={`flyer${cancelled ? ' flyer-cancelled' : ''}${isSplitBill ? ' flyer-receipt' : ''}`}
       onClick={onClick}
-      style={{ '--accent': c.accent, '--accent-dark': c.dark } as React.CSSProperties}
     >
       <div className="pin" />
       {cancelled ? <div className="cancelled-flag">Cancelled</div> : g.cost_enabled && <PaidRing pct={pct} />}

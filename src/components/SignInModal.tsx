@@ -53,7 +53,7 @@ export function SignInModal({ open, onClose, message }: { open: boolean; onClose
           </button>
           {sent ? (
             <>
-              <div className="lock" style={{ fontFamily: "'Anton',sans-serif", fontSize: 36, marginBottom: 6 }}>
+              <div className="lock" style={{ fontSize: 36, marginBottom: 6 }}>
                 ✉
               </div>
               <h2>Check your email</h2>

@@ -119,9 +119,9 @@ export function Nav() {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontFamily: "'Space Mono',monospace",
               fontSize: 11,
-              color: 'var(--clay)',
+              fontWeight: 600,
+              color: 'var(--danger)',
               padding: '2px 4px',
               marginLeft: 2,
             }}

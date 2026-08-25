@@ -104,7 +104,7 @@ export function OrganizerPanel({ gathering, onChange }: { gathering: GatheringWi
         {!confirmingDelete ? (
           <button
             className="btn-outline"
-            style={{ color: 'var(--clay)', borderColor: 'var(--clay)' }}
+            style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
             onClick={() => setConfirmingDelete(true)}
             disabled={Boolean(deleteBlockReason)}
           >
@@ -114,7 +114,7 @@ export function OrganizerPanel({ gathering, onChange }: { gathering: GatheringWi
           <>
             <button
               className="btn-outline"
-              style={{ color: 'var(--clay)', borderColor: 'var(--clay)' }}
+              style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
               onClick={handleDelete}
               disabled={deleting}
             >
@@ -136,7 +136,7 @@ export function OrganizerPanel({ gathering, onChange }: { gathering: GatheringWi
       )}
 
       {deleteBlockReason && (
-        <p style={{ marginTop: 10, marginBottom: 0, fontSize: 13, color: 'var(--clay)' }}>{deleteBlockReason}</p>
+        <p style={{ marginTop: 10, marginBottom: 0, fontSize: 13, color: 'var(--danger)' }}>{deleteBlockReason}</p>
       )}
 
       {confirmingDelete && (

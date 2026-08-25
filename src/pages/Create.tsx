@@ -200,7 +200,7 @@ export function Create() {
                 <>
                   <img className="image-preview" src={imagePreview} alt="" />
                   <div className="image-actions">
-                    <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: 'var(--ink-soft)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
                       Cover set
                     </span>
                     <button type="button" onClick={removeImage}>
@@ -227,7 +227,6 @@ export function Create() {
                     key={key}
                     type="button"
                     className={`cat-chip${cat === key ? ' active' : ''}`}
-                    style={{ '--chip-accent': catDef.accent } as React.CSSProperties}
                     onClick={() => setCat(key)}
                   >
                     {catDef.label}
@@ -452,10 +451,7 @@ export function Create() {
         </div>
 
         <div className="preview-wrap">
-          <div
-            className="preview-flyer"
-            style={{ '--accent': c.accent, '--accent-dark': c.dark } as React.CSSProperties}
-          >
+          <div className="preview-flyer">
             <div className="stripe" />
             <div className="cat">{c.label}</div>
             <div className="title">{title || 'Your gathering title'}</div>

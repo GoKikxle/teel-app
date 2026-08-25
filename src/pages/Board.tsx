@@ -106,8 +106,8 @@ export function Board() {
           <Link
             to="/closed"
             style={{
-              fontFamily: "'Space Mono', monospace",
               fontSize: 13,
+              fontWeight: 600,
               color: 'var(--ink-faint)',
               whiteSpace: 'nowrap',
             }}

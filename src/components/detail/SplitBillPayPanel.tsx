@@ -110,7 +110,7 @@ export function SplitBillPayPanel({
           />
         </div>
       ) : (
-        <p style={{ fontFamily: "'Anton', sans-serif", fontSize: 32, margin: '0 0 14px' }}>£{(fixedAmount as number).toFixed(2)}</p>
+        <p style={{ fontWeight: 800, fontSize: 32, color: 'var(--accent)', margin: '0 0 14px' }}>£{(fixedAmount as number).toFixed(2)}</p>
       )}
 
       <p className="paylink-note">

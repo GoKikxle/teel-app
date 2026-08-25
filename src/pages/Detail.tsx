@@ -102,7 +102,7 @@ export function Detail() {
       )}
       <div className="detail-top">
         <div>
-          <div className="hero-flyer" style={{ '--accent': c.accent, '--accent-dark': c.dark } as React.CSSProperties}>
+          <div className="hero-flyer">
             <div className="stripe" />
             <div className="cat">
               {isSplitBill ? 'Split bill' : c.label} <span className="vis-badge">{v.icon} {v.label}</span>
