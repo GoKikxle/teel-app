@@ -309,6 +309,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 .share-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .share-row input { font-size: 13px; }
+.copy-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; padding: 0; }
 .chat-mock { background: #E9E9EA; border-radius: 10px; padding: 10px; max-width: 260px; }
 .chat-card { background: var(--card); border-radius: 8px; overflow: hidden; box-shadow: var(--elevation-1); }
 .chat-card .thumb { height: 70px; background: var(--ink-faint); position: relative; background-size: cover; background-position: center; }

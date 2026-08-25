@@ -19,7 +19,7 @@ export function Create() {
   const toast = useToast();
 
   const [title, setTitle] = useState('');
-  const [cat, setCat] = useState<Category>('hike');
+  const [cat, setCat] = useState<Category>('hike_sports');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');

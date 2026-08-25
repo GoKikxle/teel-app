@@ -1,4 +1,4 @@
-export type Category = 'hike' | 'brunch' | 'game' | 'dj' | 'poetry' | 'other';
+export type Category = 'hike_sports' | 'travel_holiday' | 'food' | 'music_art' | 'other';
 export type Visibility = 'public' | 'private' | 'invited';
 export type CostMode = 'split_pay' | 'get_tix';
 // 'dutch': each guest types their own amount (Split Bill only) rather than

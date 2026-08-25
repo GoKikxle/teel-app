@@ -28,8 +28,11 @@ export function SharePanel({ gathering, quickShare = false }: { gathering: Gathe
       </p>
       <div className="share-row">
         <input type="text" readOnly value={link} />
-        <button className="btn-outline" onClick={copyLink}>
-          Copy link
+        <button className="btn-outline copy-btn" onClick={copyLink} aria-label="Copy link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="5.5" y="5.5" width="8" height="8" rx="1.3" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M3.5 10V3.8a1.3 1.3 0 0 1 1.3-1.3H10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
         </button>
       </div>
       {quickShare && (

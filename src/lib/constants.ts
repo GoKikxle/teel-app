@@ -4,12 +4,11 @@ import type { Category, PayMethod, Visibility } from './database.types';
 // brand accent is reserved for primary actions/active states/hero numbers,
 // never category coding (see src/index.css's :root token comments).
 export const CATS: Record<Category, { label: string }> = {
-  hike: { label: 'Hike & trip' },
-  brunch: { label: 'Brunch' },
-  game: { label: 'Game night' },
-  dj: { label: 'DJ session' },
-  poetry: { label: 'Poetry night' },
-  other: { label: 'Gathering' },
+  hike_sports: { label: 'Hike & sports' },
+  travel_holiday: { label: 'Travel & Holiday' },
+  food: { label: 'Food' },
+  music_art: { label: 'Music & art' },
+  other: { label: 'Other' },
 };
 
 export const VIS: Record<Visibility, { label: string; icon: string; desc: string }> = {
