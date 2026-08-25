@@ -1,9 +1,11 @@
 :root {
-  /* Canvas (corkboard) — deliberately untouched by this pass. The warm
-     kraft tone and its dot-grid stay exactly as they were; only the
-     content sitting on top of it (cards, ink, accent) goes neutral. */
-  --board: #E3DAC4;
+  /* Canvas (corkboard) — a cool neutral grey rather than warm kraft.
+     --dot is a dedicated token for the dot-grid pattern, tuned for
+     contrast against this specific background; --line stays as-is and
+     keeps serving borders/hairlines elsewhere, unrelated to this swap. */
+  --board: #F2F2F0;
   --line: rgba(33, 28, 21, .14);
+  --dot: rgba(26, 26, 26, .12);
 
   /* Neutrals-first ink/surface scale — replaces the old warm-brown
      ink/paper/card trio with true neutral greys and white surfaces. */
@@ -15,8 +17,8 @@
 
   /* The one brand accent — reserved for primary actions, active/selected
      states, and hero (monetary) numbers. Never used for category coding. */
-  --accent: #E8722E;
-  --accent-strong: #C7601F;
+  --accent: #F23506;
+  --accent-strong: #BC330C;
 
   /* Semantic status — distinct from the brand accent on purpose, so
      "primary action" and "danger"/"confirmed" never read as the same
@@ -49,7 +51,7 @@ body {
   background: var(--board);
   color: var(--ink);
   min-height: 100vh;
-  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 a { color: inherit; }
@@ -140,7 +142,7 @@ input[type=text], input[type=number], input[type=date], input[type=time], select
   font-family: inherit; font-size: 15px; color: var(--ink);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
-input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 114, 46, .14); outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242, 53, 6, .14); outline: none; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cats { display: flex; flex-wrap: wrap; gap: 8px; }
 /* Category chips: selection no longer varies by category — every chip
