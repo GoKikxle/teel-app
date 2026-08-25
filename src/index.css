@@ -28,7 +28,7 @@
   /* Semantic status — distinct from the brand accent on purpose, so
      "primary action" and "danger"/"confirmed" never read as the same
      signal. */
-  --success: #4B6B4A;
+  --success: #039450;
   --danger: #C0392B;
 
   --radius: 16px;
@@ -65,7 +65,7 @@ button { font-family: inherit; }
 
 /* Nav */
 nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 20px; max-width: 960px; margin: 0 auto; }
-.word { font-size: 26px; font-weight: 800; letter-spacing: .2px; cursor: pointer; background: none; border: none; color: var(--ink); padding: 0; }
+.word { font-size: 26px; font-weight: 800; letter-spacing: .2px; cursor: pointer; background: none; border: none; color: var(--accent); padding: 0; }
 .navbtn { font-size: 13px; font-weight: 700; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 10px 16px; cursor: pointer; letter-spacing: .01em; transition: background .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
 .navbtn:hover { background: var(--ink-hover); box-shadow: var(--elevation-1); }
 .navbtn:active { transform: scale(.96); }
