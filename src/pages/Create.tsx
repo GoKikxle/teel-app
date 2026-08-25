@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Switch } from '@base-ui/react/switch';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { CATS, fmtDate } from '../lib/constants';
@@ -307,13 +308,16 @@ export function Create() {
 
           <div className="toggle-row">
             <div>
-              <div className="tlabel">Split a cost</div>
+              <div className="tlabel" id="cost-toggle-label">Split a cost</div>
               <div className="tsub">Everyone pays their share, one tap</div>
             </div>
-            <button
-              type="button"
-              className={`switch${costEnabled ? ' on' : ''}`}
-              onClick={() => setCostEnabled((v) => !v)}
+            <Switch.Root
+              checked={costEnabled}
+              onCheckedChange={setCostEnabled}
+              nativeButton
+              render={<button type="button" />}
+              className={(state) => `switch${state.checked ? ' on' : ''}`}
+              aria-labelledby="cost-toggle-label"
             />
           </div>
           {costEnabled && (
@@ -415,13 +419,16 @@ export function Create() {
 
           <div className="toggle-row">
             <div>
-              <div className="tlabel">Add a poll</div>
+              <div className="tlabel" id="poll-toggle-label">Add a poll</div>
               <div className="tsub">Let the group decide something</div>
             </div>
-            <button
-              type="button"
-              className={`switch${pollEnabled ? ' on' : ''}`}
-              onClick={() => setPollEnabled((v) => !v)}
+            <Switch.Root
+              checked={pollEnabled}
+              onCheckedChange={setPollEnabled}
+              nativeButton
+              render={<button type="button" />}
+              className={(state) => `switch${state.checked ? ' on' : ''}`}
+              aria-labelledby="poll-toggle-label"
             />
           </div>
           {pollEnabled && (

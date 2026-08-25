@@ -1,3 +1,4 @@
+import { Switch } from '@base-ui/react/switch';
 import type { GatheringWithRelations, Rsvp } from '../../lib/database.types';
 import { PaidRing } from '../PaidRing';
 import { payLabel, buildPayUrl } from '../../lib/constants';
@@ -139,10 +140,17 @@ export function SplitPayPanel({
       {!readOnly && (
         <div className="toggle-row" style={{ marginTop: 14 }}>
           <div>
-            <div className="tlabel">Payment reminder</div>
+            <div className="tlabel" id="reminder-toggle-label">Payment reminder</div>
             <div className="tsub">We'll nudge you before it's due</div>
           </div>
-          <button className={`switch${gathering.reminder_on ? ' on' : ''}`} onClick={handleReminder} />
+          <Switch.Root
+            checked={gathering.reminder_on}
+            onCheckedChange={handleReminder}
+            nativeButton
+            render={<button type="button" />}
+            className={(state) => `switch${state.checked ? ' on' : ''}`}
+            aria-labelledby="reminder-toggle-label"
+          />
         </div>
       )}
     </div>
