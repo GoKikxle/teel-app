@@ -1,4 +1,4 @@
--- Teel v1 schema
+-- Komon v1 schema
 -- Identity: every visitor (organizer or guest) gets a Supabase Anonymous Auth
 -- user on first load. auth.uid() is stable per browser and used for RLS —
 -- there is no visible login step, matching the "no login wall" product rule.

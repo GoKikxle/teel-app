@@ -108,7 +108,7 @@ export function Nav() {
       <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button className="word" onClick={() => navigate('/')}>
-            Teel
+            Komon
           </button>
           <span className="vis-badge" title={email ?? undefined}>
             {email}

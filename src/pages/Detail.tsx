@@ -16,7 +16,7 @@ import { SplitBillPayPanel } from '../components/detail/SplitBillPayPanel';
 import { SplitBillProgressPanel } from '../components/detail/SplitBillProgressPanel';
 
 function gateKey(gatheringId: string) {
-  return `teel-gate-${gatheringId}`;
+  return `komon-gate-${gatheringId}`;
 }
 
 export function Detail() {

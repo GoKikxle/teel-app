@@ -109,7 +109,7 @@ function metaResponse(params: {
 <head>
 <meta charset="UTF-8" />
 <title>${escapeHtml(title)}</title>
-<meta property="og:site_name" content="Teel" />
+<meta property="og:site_name" content="Komon" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${escapeHtml(pageUrl)}" />
 <meta property="og:title" content="${escapeHtml(title)}" />
@@ -152,7 +152,7 @@ export default async function middleware(request: Request): Promise<Response | u
     return metaResponse({
       origin: url.origin,
       path: url.pathname,
-      title: 'Gathering not found — Teel',
+      title: 'Gathering not found — Komon',
       description: 'This gathering may have been removed.',
       image: `${url.origin}/og/other.png`,
       imageDimensions: { width: 1200, height: 630 },
@@ -160,7 +160,7 @@ export default async function middleware(request: Request): Promise<Response | u
   }
 
   const cancelled = Boolean(gathering.cancelled_at);
-  const title = `${cancelled ? 'Cancelled: ' : ''}${gathering.title} — Teel`;
+  const title = `${cancelled ? 'Cancelled: ' : ''}${gathering.title} — Komon`;
 
   const dateLabel = fmtDate(gathering.gathering_date);
   const timeLabel = gathering.gathering_time ? ` · ${gathering.gathering_time}` : '';

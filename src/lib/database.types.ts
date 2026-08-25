@@ -2,7 +2,7 @@ export type Category = 'hike' | 'brunch' | 'game' | 'dj' | 'poetry' | 'other';
 export type Visibility = 'public' | 'private' | 'invited';
 export type CostMode = 'split_pay' | 'get_tix';
 // 'dutch': each guest types their own amount (Split Bill only) rather than
-// Teel computing an equal share or the organizer setting one per person.
+// Komon computing an equal share or the organizer setting one per person.
 export type SplitMethod = 'equal' | 'custom' | 'itemized' | 'dutch';
 export type PayMode = 'direct' | 'stripe';
 export type PayMethod = 'venmo' | 'paypal' | 'cashapp' | 'monzo' | 'revolut';

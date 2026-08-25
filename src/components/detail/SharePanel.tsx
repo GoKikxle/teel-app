@@ -58,7 +58,7 @@ export function SharePanel({ gathering, quickShare = false }: { gathering: Gathe
           />
           <div className="body">
             <p className="t">{gathering.title}</p>
-            <p className="s">{fmtDate(gathering.gathering_date)} · teel.app</p>
+            <p className="s">{fmtDate(gathering.gathering_date)} · komon.app</p>
           </div>
         </div>
       </div>

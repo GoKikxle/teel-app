@@ -411,8 +411,8 @@ export function Create() {
                 />
               </div>
               <p className="mode-note">
-                Teel doesn't hold or move money — it sends each guest to your payment link with the amount pre-filled,
-                then tracks who's confirmed paying. ("Pay through Teel" via Stripe is coming in a later pass.)
+                Komon doesn't hold or move money — it sends each guest to your payment link with the amount pre-filled,
+                then tracks who's confirmed paying. ("Pay through Komon" via Stripe is coming in a later pass.)
               </p>
             </div>
           )}

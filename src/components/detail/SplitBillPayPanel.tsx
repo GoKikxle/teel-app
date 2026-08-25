@@ -115,7 +115,7 @@ export function SplitBillPayPanel({
 
       <p className="paylink-note">
         Pays directly to the organizer's {payLabel(gathering.pay_method)}
-        {gathering.pay_handle ? ` · @${gathering.pay_handle}` : ''}. Teel just tracks who's confirmed.
+        {gathering.pay_handle ? ` · @${gathering.pay_handle}` : ''}. Komon just tracks who's confirmed.
       </p>
 
       <div className="pay-steps">
@@ -134,7 +134,7 @@ export function SplitBillPayPanel({
             <button className={`btn-outline${myRsvp?.paid ? ' done' : ''}`} onClick={handleConfirm} disabled={!myRsvp?.paid_sent}>
               {myRsvp?.paid ? "Confirmed ✓ · undo" : "I've sent it"}
             </button>
-            <span className="step-hint">Self-confirmed — Teel can't verify the transfer itself</span>
+            <span className="step-hint">Self-confirmed — Komon can't verify the transfer itself</span>
           </div>
         </div>
       </div>

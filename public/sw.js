@@ -4,7 +4,7 @@
 // the known-stable shell (root document, manifest, icons), and runtime-cache
 // everything else as it's fetched — so a second offline visit still has the
 // hashed bundle from the first online visit.
-const CACHE = 'teel-shell-v1';
+const CACHE = 'komon-shell-v1';
 const SHELL = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

@@ -204,7 +204,7 @@ export function SplitBillCreate() {
                 onClick={() => setSplitMethod('equal')}
               >
                 <span className="mode-title">Equal</span>
-                <span className="mode-sub">Teel splits it evenly — £{perPerson.toFixed(2)} each</span>
+                <span className="mode-sub">Komon splits it evenly — £{perPerson.toFixed(2)} each</span>
               </button>
               <button
                 type="button"
@@ -246,7 +246,7 @@ export function SplitBillCreate() {
               <input type="text" placeholder="e.g. sam-hikes" value={payHandle} onChange={(e) => setPayHandle(e.target.value)} />
             </div>
             <p className="mode-note">
-              Teel doesn't hold or move money — it sends each guest to your payment link with the amount pre-filled,
+              Komon doesn't hold or move money — it sends each guest to your payment link with the amount pre-filled,
               then tracks who's confirmed paying.
             </p>
             <p className="poll-hint" style={{ marginBottom: 0 }}>

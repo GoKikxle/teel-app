@@ -7,7 +7,7 @@ alter table gatherings add column kind text not null default 'event'
   check (kind in ('event', 'split_bill'));
 
 -- "Dutch" split: each guest types their own amount rather than an equal
--- share computed by Teel. Postgres can't append a value to an existing
+-- share computed by Komon. Postgres can't append a value to an existing
 -- check constraint, so this drops and recreates it. gatherings_split_method_check
 -- is the standard Postgres-assigned name for the original inline, unnamed
 -- `check (split_method in (...))` in 0001_init.sql — if your project
