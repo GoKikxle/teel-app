@@ -28,7 +28,7 @@
   /* Semantic status — distinct from the brand accent on purpose, so
      "primary action" and "danger"/"confirmed" never read as the same
      signal. */
-  --success: #039450;
+  --success: #1C5C44;
   --danger: #C0392B;
 
   --radius: 16px;
