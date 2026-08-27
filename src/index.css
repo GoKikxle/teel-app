@@ -22,8 +22,8 @@
      of non-button/tab active states (switches, poll bars, mode-card
      borders, category chips). Buttons and filter tabs use --ink/--ink-hover
      instead, not this. Never used for category coding. */
-  --accent: #E040E0;
-  --accent-strong: #C62AC2;
+  --accent: #FF2D55;
+  --accent-strong: #F30930;
 
   /* Semantic status — distinct from the brand accent on purpose, so
      "primary action" and "danger"/"confirmed" never read as the same
@@ -42,7 +42,7 @@
   --elevation-2: 0 4px 10px rgba(26, 26, 26, .09), 0 2px 4px rgba(26, 26, 26, .06);
   --elevation-3: 0 16px 32px rgba(26, 26, 26, .14), 0 4px 10px rgba(26, 26, 26, .08);
 
-  font-family: 'Onest', sans-serif;
+  font-family: 'Urbanist', sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -147,7 +147,7 @@ input[type=text], input[type=email], input[type=number], input[type=date], input
   font-family: inherit; font-size: 15px; color: var(--ink);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
-input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(224, 64, 224, .14); outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 45, 85, .14); outline: none; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cats { display: flex; flex-wrap: wrap; gap: 8px; }
 /* Category chips: selection no longer varies by category — every chip
