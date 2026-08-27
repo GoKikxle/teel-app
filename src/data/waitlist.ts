@@ -28,8 +28,14 @@ export async function checkWaitlistApproval(email: string): Promise<boolean> {
 // select policy at all (see 0007_waitlist.sql), so asking PostgREST to
 // return the inserted row would fail under RLS. The insert itself is all
 // this needs.
-export async function joinWaitlist(email: string): Promise<'joined' | 'already'> {
-  const { error } = await supabase.from('waitlist').insert({ email: normalize(email) });
+//
+// firstName/lastName are trimmed but otherwise unvalidated — see
+// 0009_waitlist_names.sql, which adds them as nullable columns with no
+// backfill for pre-existing rows.
+export async function joinWaitlist(email: string, firstName: string, lastName: string): Promise<'joined' | 'already'> {
+  const { error } = await supabase
+    .from('waitlist')
+    .insert({ email: normalize(email), first_name: firstName.trim(), last_name: lastName.trim() });
   if (error) {
     if (error.code === '23505') return 'already';
     throw error;

@@ -35,14 +35,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else (bundled JS/CSS, icons): cache-first, populate on miss.
+  // Everything else (bundled JS/CSS, icons, hero photo): cache-first,
+  // populate on miss. The cache.put below is wrapped in event.waitUntil —
+  // without it, the worker can be torn down mid-write on a large response
+  // (e.g. the hero photo) before the cache entry finishes, leaving a
+  // truncated/corrupted cached copy served on every later visit.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((response) => {
         if (response.ok) {
           const clone = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+          event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, clone)));
         }
         return response;
       });

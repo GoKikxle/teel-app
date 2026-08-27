@@ -88,10 +88,15 @@ export function Nav() {
     );
   }
 
-  // Anonymous visitor anywhere else — the root path renders its own
-  // marketing landing page for this case (see Home.tsx/Landing.tsx), with
-  // its own Get Started / Sign In actions, so this bar stays out of its way
-  // rather than duplicating them.
+  // Anonymous visitor on the root path — Landing.tsx renders its own full
+  // header (logo + "Join our waitlist" pill, per the Figma frame it was
+  // rebuilt from), so this bar renders nothing here to avoid a duplicate
+  // header stacked on top of it.
+  if (!isPersistent && location.pathname === '/') {
+    return null;
+  }
+
+  // Anonymous visitor anywhere else — just the logo, no CTAs.
   if (!isPersistent) {
     return (
       <nav>
