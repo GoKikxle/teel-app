@@ -65,7 +65,11 @@ button { font-family: inherit; }
 
 /* Nav */
 nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 20px; max-width: 960px; margin: 0 auto; }
-.word { font-size: 26px; font-weight: 800; letter-spacing: .2px; cursor: pointer; background: none; border: none; color: var(--accent); padding: 0; }
+/* Button/span reset for the Wordmark SVG (see src/components/Wordmark.tsx)
+   — no font properties here anymore, there's no text left to style. The
+   lettermark's fill is fixed solid dark in the SVG itself, deliberately
+   not tied to --accent (unlike the old text wordmark). */
+.word { display: inline-flex; align-items: center; cursor: pointer; background: none; border: none; padding: 0; }
 .navbtn { font-size: 13px; font-weight: 700; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 10px 16px; cursor: pointer; letter-spacing: .01em; transition: background .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
 .navbtn:hover { background: var(--ink-hover); box-shadow: var(--elevation-1); }
 .navbtn:active { transform: scale(.96); }
@@ -369,7 +373,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .waitlist-footer-cta .waitlist-done { display: block; }
 
 .waitlist-footer { display: flex; align-items: center; justify-content: space-between; padding: 24px 0 8px; }
-.waitlist-footer .word { font-size: 18px; }
 .waitlist-footer-copy { font-size: 12px; color: var(--ink-faint); }
 
 @media (prefers-reduced-motion: reduce) {

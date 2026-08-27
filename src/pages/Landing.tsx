@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { FlyerCard } from '../components/FlyerCard';
 import { ProofStrip } from '../components/ProofStrip';
+import { Wordmark } from '../components/Wordmark';
 import { joinWaitlist } from '../data/waitlist';
 import { useToast } from '../hooks/useToast';
 import type { GatheringWithRelations } from '../lib/database.types';
@@ -155,7 +156,7 @@ export function Landing() {
 
       <footer className="waitlist-footer">
         <span className="word" style={{ cursor: 'default' }}>
-          Komon
+          <Wordmark height={18} />
         </span>
         <span className="waitlist-footer-copy">© 2026 Komon</span>
       </footer>

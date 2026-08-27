@@ -7,6 +7,7 @@ import { useCreateGate } from '../hooks/useCreateGate';
 import { fetchGatheringKind } from '../data/gatherings';
 import type { GatheringKind } from '../lib/database.types';
 import { SignInModal } from './SignInModal';
+import { Wordmark } from './Wordmark';
 
 export function Nav() {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ export function Nav() {
         <nav>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <button className="word" onClick={() => navigate('/')}>
-              Komon
+              <Wordmark />
             </button>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -96,7 +97,7 @@ export function Nav() {
       <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button className="word" onClick={() => navigate('/')}>
-            Komon
+            <Wordmark />
           </button>
         </div>
       </nav>
@@ -108,7 +109,7 @@ export function Nav() {
       <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button className="word" onClick={() => navigate('/')}>
-            Komon
+            <Wordmark />
           </button>
           <span className="vis-badge" title={email ?? undefined}>
             {email}
