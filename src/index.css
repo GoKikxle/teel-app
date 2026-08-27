@@ -385,17 +385,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   max-width: 640px;
   margin: 0;
 }
-@media (max-width: 700px) {
-  .waitlist-headline { font-size: 40px; line-height: 1.15; }
-}
 
-.waitlist-hero-card {
+/* Wraps the photo card and the two floating notification cards as siblings
+   — the cards are positioned relative to this group, not nested inside the
+   photo card's own padded box, so their placement isn't thrown off by that
+   padding. Desktop pins them absolutely over the group; the 430px
+   breakpoint below turns the group into a plain stack instead. */
+.waitlist-hero-group {
   position: relative;
+  width: 743px;
+  max-width: calc(100% - 32px);
+}
+.waitlist-hero-card {
   background: #fff;
   border-radius: 12px;
   padding: 16px;
-  width: 743px;
-  max-width: calc(100% - 32px);
 }
 .waitlist-hero-photo {
   display: block;
@@ -425,11 +429,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .waitlist-notif p { margin: 0; font-weight: 400; line-height: 24px; }
 .waitlist-notif-dark { background: #1d2129; color: #fff; left: -4%; bottom: 20%; }
 .waitlist-notif-light { background: #fff; border: 1px solid rgba(189, 193, 197, .25); color: #000; left: 45%; top: 14%; }
-@media (max-width: 700px) {
-  .waitlist-notif { white-space: normal; max-width: 70%; }
-  .waitlist-notif-dark { left: 4%; }
-  .waitlist-notif-light { left: auto; right: 4%; }
-}
+.waitlist-notif-short { display: none; }
 
 .waitlist-avatar-group { display: flex; align-items: center; }
 .waitlist-avatar {
@@ -493,6 +493,67 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   background: none; border: none; border-radius: 100px; padding: 10px 16px; width: 100%; cursor: pointer;
 }
 .waitlist-modal-cancel:hover { color: var(--ink); }
+
+/* Mobile layout — pulled from the "Komon waitlist Page - mobile" and
+   "Komon waitlist form - mobile" Figma frames, both a 390px-wide canvas.
+   Breakpoint set at 430px: 390px (the frame) plus a buffer so the
+   ~393-428px class of phones (Android/Pro Max widths Figma didn't render
+   a separate frame for) also gets this layout instead of landing between
+   breakpoints — anchored to the frame width, not a generic default. */
+@media (max-width: 430px) {
+  .waitlist-page { padding: 30px 24px 24px; }
+
+  .waitlist-topbar { width: 313px; max-width: 100%; }
+
+  .waitlist-headline {
+    width: 313px;
+    max-width: 100%;
+    font-size: 48px;
+    line-height: 48px;
+    letter-spacing: -.24px;
+  }
+
+  /* Cards go from absolutely-overlaid-on-the-photo to a plain stack below
+     it — order controls visual sequence (light card, then dark) since the
+     underlying DOM order is unchanged from desktop. */
+  .waitlist-hero-group {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .waitlist-hero-card { width: 100%; order: 1; }
+  .waitlist-hero-photo { aspect-ratio: 309 / 283; }
+  .waitlist-notif { position: static; left: auto; top: auto; bottom: auto; right: auto; }
+  .waitlist-notif-light { order: 2; margin-top: 14px; }
+  .waitlist-notif-dark { order: 3; margin-top: 12px; }
+  /* Avatar group doesn't appear on the mobile "Manchester hiking" card in
+     Figma, and its trailing copy is shorter ("All confirmed!" vs "All
+     guests confirmed!") — see the two spans this toggles between in
+     Landing.tsx. */
+  .waitlist-avatar-group { display: none; }
+  .waitlist-notif-full { display: none; }
+  .waitlist-notif-short { display: inline; }
+
+  .waitlist-footer { padding-top: 24px; }
+
+  /* Modal: near-full-width card anchored near the top rather than
+     vertically centered, and the name fields stack instead of sitting
+     side by side — see the 358px card width note below and
+     .waitlist-modal-row's flex-direction flip. */
+  .waitlist-modal-viewport {
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px 16px;
+    overflow-y: auto;
+  }
+  /* No explicit width override needed here — .waitlist-modal-card is
+     already width:558px:max-width:100%, and this viewport's 16px side
+     padding on a ~390px phone yields exactly Figma's 358px card width. */
+  .waitlist-modal-content { padding: 0 24px; }
+  .waitlist-modal-row { flex-direction: column; gap: 24px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
