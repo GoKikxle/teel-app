@@ -13,11 +13,14 @@ interface ItemRow {
   amount: string;
 }
 
+const TOTAL_STEPS = 2;
+
 export function Create() {
   const navigate = useNavigate();
   const { userId, ready, isPersistent } = useAuth();
   const toast = useToast();
 
+  const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [cat, setCat] = useState<Category>('hike_sports');
   const [date, setDate] = useState('');
@@ -77,6 +80,21 @@ export function Create() {
 
   function removeEmail(i: number) {
     setEmails((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  // Same validation handleSubmit already requires (title + date) — step 1
+  // covers both, so gating "Next" on them here just surfaces the problem
+  // a step earlier instead of only at final submit.
+  function next() {
+    if (!title || !date) {
+      toast(!title ? 'Add a title' : 'Pick a date');
+      return;
+    }
+    setStep(2);
+  }
+
+  function back() {
+    setStep(1);
   }
 
   async function handleSubmit() {
@@ -197,77 +215,101 @@ export function Create() {
             Fill this in once. Everything on the right updates live — that's the flyer people will actually see.
           </p>
 
-          <div className="field">
-            <label>Title</label>
-            <input
-              type="text"
-              placeholder="e.g. Ridge Line Sunrise Hike"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+          {/* Same two-step wizard pattern as SplitBillCreate.tsx —
+              .wizard-steps/.wizard-dot reused verbatim (no separate
+              stepper component exists there to import; it's inline
+              markup on that page too). Dots stay visible across both
+              steps, matching that page's own placement: above the step
+              content, below the page header. */}
+          <div className="wizard-steps">
+            {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((n) => (
+              <div key={n} className={`wizard-dot${n === step ? ' active' : n < step ? ' done' : ''}`} />
+            ))}
           </div>
 
-          <div className="field">
-            <label>Cover image</label>
-            <div className={`image-picker${imagePreview ? ' filled' : ''}`}>
-              {imagePreview ? (
-                <>
-                  <img className="image-preview" src={imagePreview} alt="" />
-                  <div className="image-actions">
-                    <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-                      Cover set
-                    </span>
-                    <button type="button" onClick={removeImage}>
-                      Remove
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <label className="image-picker-label">
-                  Tap to add a photo (optional)
-                  <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-                </label>
-              )}
-            </div>
-          </div>
+          {step === 1 && (
+            <>
+              <div className="field">
+                <label>Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ridge Line Sunrise Hike"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
 
-          <div className="field">
-            <label>Category</label>
-            <div className="cats">
-              {(Object.entries(CATS) as [Category, typeof CATS[Category]][])
-                .filter(([key]) => key !== 'other')
-                .map(([key, catDef]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`cat-chip${cat === key ? ' active' : ''}`}
-                    onClick={() => setCat(key)}
-                  >
-                    {catDef.label}
-                  </button>
-                ))}
-            </div>
-          </div>
+              <div className="field">
+                <label>Cover image</label>
+                <div className={`image-picker${imagePreview ? ' filled' : ''}`}>
+                  {imagePreview ? (
+                    <>
+                      <img className="image-preview" src={imagePreview} alt="" />
+                      <div className="image-actions">
+                        <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
+                          Cover set
+                        </span>
+                        <button type="button" onClick={removeImage}>
+                          Remove
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <label className="image-picker-label">
+                      Tap to add a photo (optional)
+                      <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+                    </label>
+                  )}
+                </div>
+              </div>
 
-          <div className="row2">
-            <div className="field">
-              <label>Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Time</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
-          </div>
-          <div className="field">
-            <label>Location</label>
-            <input
-              type="text"
-              placeholder="Where you're meeting"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
+              <div className="field">
+                <label>Category</label>
+                <div className="cats">
+                  {(Object.entries(CATS) as [Category, typeof CATS[Category]][])
+                    .filter(([key]) => key !== 'other')
+                    .map(([key, catDef]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`cat-chip${cat === key ? ' active' : ''}`}
+                        onClick={() => setCat(key)}
+                      >
+                        {catDef.label}
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              <div className="row2">
+                <div className="field">
+                  <label>Date</label>
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Time</label>
+                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label>Location</label>
+                <input
+                  type="text"
+                  placeholder="Where you're meeting"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label>Capacity</label>
+                <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} />
+              </div>
+
+              <button type="button" className="primary-btn" onClick={next}>
+                Next
+              </button>
+            </>
+          )}
         </div>
 
         {/* Preview card sits between the "core" fields above
@@ -312,206 +354,215 @@ export function Create() {
         </div>
 
         <div>
-          <div className="field">
-            <label>Capacity</label>
-            <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} />
-          </div>
-
-          <div className="field">
-            <label>Who can access this?</label>
-            <div className="mode-cards">
-              {(
-                [
-                  ['public', 'Public', 'Anyone can find and access it'],
-                  ['private', 'Private', 'Only people you share the link with'],
-                  ['invited', 'Invited', 'Only the email addresses you add'],
-                ] as [Visibility, string, string][]
-              ).map(([key, label, sub]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`mode-card${visibility === key ? ' active' : ''}`}
-                  onClick={() => setVisibility(key)}
-                >
-                  <span className="mode-title">{label}</span>
-                  <span className="mode-sub">{sub}</span>
-                </button>
-              ))}
-            </div>
-            {visibility === 'invited' && (
-              <div>
-                <label>Invited emails</label>
-                <div>
-                  {emails.map((email, i) => (
-                    <div className="email-row" key={i}>
-                      <input
-                        type="text"
-                        placeholder="name@example.com"
-                        value={email}
-                        onChange={(e) => updateEmail(i, e.target.value)}
-                      />
-                      <button type="button" className="item-remove" aria-label="Remove email" onClick={() => removeEmail(i)}>
-                        ✕
-                      </button>
-                    </div>
+          {step === 2 && (
+            <>
+              <div className="field">
+                <label>Who can access this?</label>
+                <div className="mode-cards">
+                  {(
+                    [
+                      ['public', 'Public', 'Anyone can find and access it'],
+                      ['private', 'Private', 'Only people you share the link with'],
+                      ['invited', 'Invited', 'Only the email addresses you add'],
+                    ] as [Visibility, string, string][]
+                  ).map(([key, label, sub]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`mode-card${visibility === key ? ' active' : ''}`}
+                      onClick={() => setVisibility(key)}
+                    >
+                      <span className="mode-title">{label}</span>
+                      <span className="mode-sub">{sub}</span>
+                    </button>
                   ))}
                 </div>
-                <button type="button" className="btn-outline" onClick={() => setEmails((p) => [...p, ''])}>
-                  + Add email
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="toggle-row">
-            <div>
-              <div className="tlabel" id="cost-toggle-label">Split a cost</div>
-              <div className="tsub">Everyone pays their share, one tap</div>
-            </div>
-            <Switch.Root
-              checked={costEnabled}
-              onCheckedChange={setCostEnabled}
-              nativeButton
-              render={<button type="button" />}
-              className={(state) => `switch${state.checked ? ' on' : ''}`}
-              aria-labelledby="cost-toggle-label"
-            />
-          </div>
-          {costEnabled && (
-            <div className="subfields">
-              <label>Split method</label>
-              <div className="radio-group">
-                {(
-                  [
-                    ['equal', 'Equal split'],
-                    ['custom', 'Set amount per person'],
-                    ['itemized', 'Itemized'],
-                  ] as [SplitMethod, string][]
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`radio-chip${costMethod === key ? ' active' : ''}`}
-                    onClick={() => setCostMethod(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {costMethod !== 'itemized' ? (
-                <div className="field">
-                  <label>Total cost (£)</label>
-                  <input type="number" placeholder="60" value={costTotal} onChange={(e) => setCostTotal(e.target.value)} />
-                </div>
-              ) : (
-                <div>
-                  <label>Cost items</label>
+                {visibility === 'invited' && (
                   <div>
-                    {items.map((item, i) => (
-                      <div className="item-row" key={i}>
-                        <input
-                          type="text"
-                          className="iname"
-                          placeholder="e.g. Entrance fee"
-                          value={item.name}
-                          onChange={(e) => updateItem(i, { name: e.target.value })}
-                        />
-                        <input
-                          type="number"
-                          className="iamt"
-                          placeholder="0.00"
-                          value={item.amount}
-                          onChange={(e) => updateItem(i, { amount: e.target.value })}
-                        />
-                        <button type="button" className="item-remove" aria-label="Remove item" onClick={() => removeItem(i)}>
-                          ✕
-                        </button>
-                      </div>
+                    <label>Invited emails</label>
+                    <div>
+                      {emails.map((email, i) => (
+                        <div className="email-row" key={i}>
+                          <input
+                            type="text"
+                            placeholder="name@example.com"
+                            value={email}
+                            onChange={(e) => updateEmail(i, e.target.value)}
+                          />
+                          <button type="button" className="item-remove" aria-label="Remove email" onClick={() => removeEmail(i)}>
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="btn-outline" onClick={() => setEmails((p) => [...p, ''])}>
+                      + Add email
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="toggle-row">
+                <div>
+                  <div className="tlabel" id="cost-toggle-label">Split a cost</div>
+                  <div className="tsub">Everyone pays their share, one tap</div>
+                </div>
+                <Switch.Root
+                  checked={costEnabled}
+                  onCheckedChange={setCostEnabled}
+                  nativeButton
+                  render={<button type="button" />}
+                  className={(state) => `switch${state.checked ? ' on' : ''}`}
+                  aria-labelledby="cost-toggle-label"
+                />
+              </div>
+              {costEnabled && (
+                <div className="subfields">
+                  <label>Split method</label>
+                  <div className="radio-group">
+                    {(
+                      [
+                        ['equal', 'Equal split'],
+                        ['custom', 'Set amount per person'],
+                        ['itemized', 'Itemized'],
+                      ] as [SplitMethod, string][]
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`radio-chip${costMethod === key ? ' active' : ''}`}
+                        onClick={() => setCostMethod(key)}
+                      >
+                        {label}
+                      </button>
                     ))}
                   </div>
-                  <button type="button" className="btn-outline" onClick={() => setItems((p) => [...p, { name: '', amount: '' }])}>
-                    + Add item
-                  </button>
-                  <div className="item-total">Total: £{itemTotal.toFixed(2)}</div>
+
+                  {costMethod !== 'itemized' ? (
+                    <div className="field">
+                      <label>Total cost (£)</label>
+                      <input type="number" placeholder="60" value={costTotal} onChange={(e) => setCostTotal(e.target.value)} />
+                    </div>
+                  ) : (
+                    <div>
+                      <label>Cost items</label>
+                      <div>
+                        {items.map((item, i) => (
+                          <div className="item-row" key={i}>
+                            <input
+                              type="text"
+                              className="iname"
+                              placeholder="e.g. Entrance fee"
+                              value={item.name}
+                              onChange={(e) => updateItem(i, { name: e.target.value })}
+                            />
+                            <input
+                              type="number"
+                              className="iamt"
+                              placeholder="0.00"
+                              value={item.amount}
+                              onChange={(e) => updateItem(i, { amount: e.target.value })}
+                            />
+                            <button type="button" className="item-remove" aria-label="Remove item" onClick={() => removeItem(i)}>
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" className="btn-outline" onClick={() => setItems((p) => [...p, { name: '', amount: '' }])}>
+                        + Add item
+                      </button>
+                      <div className="item-total">Total: £{itemTotal.toFixed(2)}</div>
+                    </div>
+                  )}
+
+                  <label style={{ marginTop: 12 }}>How should people pay?</label>
+                  <div className="radio-group">
+                    {(
+                      [
+                        ['venmo', 'Venmo'],
+                        ['paypal', 'PayPal'],
+                        ['cashapp', 'Cash App'],
+                        ['monzo', 'Monzo'],
+                        ['revolut', 'Revolut'],
+                      ] as [PayMethod, string][]
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`radio-chip${payMethod === key ? ' active' : ''}`}
+                        onClick={() => setPayMethod(key)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="field">
+                    <label>Your @handle</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. sam-hikes"
+                      value={payHandle}
+                      onChange={(e) => setPayHandle(e.target.value)}
+                    />
+                  </div>
+                  <p className="mode-note">
+                    Komon doesn't hold or move money — it sends each guest to your payment link with the amount pre-filled,
+                    then tracks who's confirmed paying. ("Pay through Komon" via Stripe is coming in a later pass.)
+                  </p>
                 </div>
               )}
 
-              <label style={{ marginTop: 12 }}>How should people pay?</label>
-              <div className="radio-group">
-                {(
-                  [
-                    ['venmo', 'Venmo'],
-                    ['paypal', 'PayPal'],
-                    ['cashapp', 'Cash App'],
-                    ['monzo', 'Monzo'],
-                    ['revolut', 'Revolut'],
-                  ] as [PayMethod, string][]
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`radio-chip${payMethod === key ? ' active' : ''}`}
-                    onClick={() => setPayMethod(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="field">
-                <label>Your @handle</label>
-                <input
-                  type="text"
-                  placeholder="e.g. sam-hikes"
-                  value={payHandle}
-                  onChange={(e) => setPayHandle(e.target.value)}
+              <div className="toggle-row">
+                <div>
+                  <div className="tlabel" id="poll-toggle-label">Add a poll</div>
+                  <div className="tsub">Let the group decide something</div>
+                </div>
+                <Switch.Root
+                  checked={pollEnabled}
+                  onCheckedChange={setPollEnabled}
+                  nativeButton
+                  render={<button type="button" />}
+                  className={(state) => `switch${state.checked ? ' on' : ''}`}
+                  aria-labelledby="poll-toggle-label"
                 />
               </div>
-              <p className="mode-note">
-                Komon doesn't hold or move money — it sends each guest to your payment link with the amount pre-filled,
-                then tracks who's confirmed paying. ("Pay through Komon" via Stripe is coming in a later pass.)
-              </p>
-            </div>
-          )}
+              {pollEnabled && (
+                <div className="subfields">
+                  <div className="field">
+                    <label>Question</label>
+                    <input type="text" placeholder="Which trailhead?" value={pollQ} onChange={(e) => setPollQ(e.target.value)} />
+                  </div>
+                  <div className="field opt-input">
+                    <label>Option A</label>
+                    <input type="text" placeholder="North ridge" value={opt1} onChange={(e) => setOpt1(e.target.value)} />
+                  </div>
+                  <div className="field opt-input">
+                    <label>Option B</label>
+                    <input type="text" placeholder="Riverside path" value={opt2} onChange={(e) => setOpt2(e.target.value)} />
+                  </div>
+                  <div className="field opt-input">
+                    <label>Option C (optional)</label>
+                    <input type="text" placeholder="" value={opt3} onChange={(e) => setOpt3(e.target.value)} />
+                  </div>
+                </div>
+              )}
 
-          <div className="toggle-row">
-            <div>
-              <div className="tlabel" id="poll-toggle-label">Add a poll</div>
-              <div className="tsub">Let the group decide something</div>
-            </div>
-            <Switch.Root
-              checked={pollEnabled}
-              onCheckedChange={setPollEnabled}
-              nativeButton
-              render={<button type="button" />}
-              className={(state) => `switch${state.checked ? ' on' : ''}`}
-              aria-labelledby="poll-toggle-label"
-            />
-          </div>
-          {pollEnabled && (
-            <div className="subfields">
-              <div className="field">
-                <label>Question</label>
-                <input type="text" placeholder="Which trailhead?" value={pollQ} onChange={(e) => setPollQ(e.target.value)} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+                <button type="button" className="btn-outline" onClick={back} disabled={submitting}>
+                  Back
+                </button>
+                <button
+                  className="primary-btn"
+                  style={{ width: 'auto', padding: '9px 20px' }}
+                  onClick={handleSubmit}
+                  disabled={submitting || !ready}
+                >
+                  {submitting ? 'Creating…' : 'Create gathering'}
+                </button>
               </div>
-              <div className="field opt-input">
-                <label>Option A</label>
-                <input type="text" placeholder="North ridge" value={opt1} onChange={(e) => setOpt1(e.target.value)} />
-              </div>
-              <div className="field opt-input">
-                <label>Option B</label>
-                <input type="text" placeholder="Riverside path" value={opt2} onChange={(e) => setOpt2(e.target.value)} />
-              </div>
-              <div className="field opt-input">
-                <label>Option C (optional)</label>
-                <input type="text" placeholder="" value={opt3} onChange={(e) => setOpt3(e.target.value)} />
-              </div>
-            </div>
+            </>
           )}
-
-          <button className="primary-btn" onClick={handleSubmit} disabled={submitting || !ready}>
-            {submitting ? 'Creating…' : 'Create gathering'}
-          </button>
         </div>
       </div>
       </div>

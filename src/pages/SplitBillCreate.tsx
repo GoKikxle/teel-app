@@ -8,12 +8,11 @@ import { SignInModal } from '../components/SignInModal';
 
 const TOTAL_STEPS = 4;
 
-// Quick-create flow, separate from the full "New gathering" form (Create.tsx,
-// untouched by this file). No cover photo, no category, no guest list — just
-// enough to generate a payment link: amount, headcount, split rule, pay
-// method. Unlike Create.tsx's single scrolling form, this is a real step
-// wizard (there's no existing stepper CSS to reuse, so .wizard-steps/.wizard-dot
-// below are new, minimal, and only used here).
+// Quick-create flow, separate from the full "New gathering" form
+// (Create.tsx). No cover photo, no category, no guest list — just enough
+// to generate a payment link: amount, headcount, split rule, pay method.
+// This page originated the .wizard-steps/.wizard-dot stepper pattern —
+// Create.tsx now reuses these same classes for its own two-step flow.
 export function SplitBillCreate() {
   const navigate = useNavigate();
   const { userId, ready, isPersistent } = useAuth();
@@ -113,8 +112,14 @@ export function SplitBillCreate() {
   }
 
   return (
-    <div className="wrap">
-      <p className="eyebrow">Split bill</p>
+    <div className="split-page">
+      <div className="wrap">
+      <div className="create-eyebrow-row">
+        <button type="button" className="create-back-btn" onClick={() => navigate('/')} aria-label="Back to board">
+          <img src="/icons/board/chevron-back-gray.svg" alt="" width={24} height={24} />
+        </button>
+        <p className="eyebrow">Split bill</p>
+      </div>
       <h1>Split a bill, fast</h1>
       <p className="lede">No guest list, no names — just an amount and a payment link.</p>
 
@@ -276,6 +281,7 @@ export function SplitBillCreate() {
             </button>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

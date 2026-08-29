@@ -75,6 +75,19 @@ button { font-family: inherit; }
    .wrap so the color covers the whole viewport width, not just the
    centered 960px column. */
 .create-page { background: #f4f2ee; min-height: 100vh; }
+/* Split Bill's own flat-background wrapper — same #f4f2ee token and
+   full-bleed treatment as .create-page, kept as its own class rather
+   than reusing .create-page directly: .create-page also carries h1/.lede
+   typography overrides (40px/600-weight, scoped as .create-page h1 etc.)
+   sized for New Gathering's Figma frame specifically, which weren't part
+   of what was asked for here — sharing the class would've pulled those
+   in as an unrequested side effect. */
+.split-page { background: #f4f2ee; min-height: 100vh; }
+/* Flat card treatment matching New Gathering's preview card — no
+   elevation shadow. Scoped to this page only: .panel is shared with the
+   post-creation detail-view panels (RsvpPanel, PollPanel, SharePanel,
+   etc. in components/detail/), which keep their existing shadow. */
+.split-page .panel { box-shadow: none; }
 
 /* Header block (back arrow + eyebrow, title, subtext) — scoped overrides
    of the shared h1/.lede/.eyebrow rules, not touched globally since those
@@ -303,6 +316,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .mode-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .mode-card { text-align: left; background: var(--card); border: 1.5px solid transparent; box-shadow: var(--elevation-1); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; font-family: inherit; }
 .mode-card.active { border-color: var(--accent); }
+/* New Gathering's "Who can access this?" cards go flat, matching the
+   preview card treatment — scoped to .create-page so Split Bill's own
+   Equal/Dutch mode-cards (SplitBillCreate.tsx step 3) keep their
+   elevation shadow, since that wasn't part of what was asked for. */
+.create-page .mode-card { box-shadow: none; }
 .mode-title { font-size: 14px; font-weight: 700; }
 .mode-sub { font-size: 12px; color: var(--ink-faint); line-height: 1.4; }
 .mode-note { font-size: 12px; color: var(--ink-faint); margin: 8px 0 12px; line-height: 1.5; }
