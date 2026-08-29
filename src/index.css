@@ -32,6 +32,12 @@
   --danger: #C0392B;
 
   --radius: 16px;
+  /* Split out from --radius deliberately — that token is shared by
+     buttons/cards/panels too (.primary-btn, .panel, .mode-card,
+     .ticket-card, .modal-card, .btn-outline, .poll-opt, .toggle-row,
+     .image-picker/.image-preview), which stay at 16px. Only actual
+     <input>/<select>/<textarea> elements use this one. */
+  --radius-input: 8px;
   --ease: cubic-bezier(.4, 0, .2, 1);
 
   /* Elevation system — soft shadow only; this is the sole separation
@@ -62,6 +68,40 @@ body {
 a { color: inherit; }
 button { font-family: inherit; }
 .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* New Gathering page — flat page background instead of the corkboard
+   dot-pattern, matching the Figma frame's #F4F2EE (same token as Board's
+   own page background, confirmed, not assumed). Full-bleed wrapper around
+   .wrap so the color covers the whole viewport width, not just the
+   centered 960px column. */
+.create-page { background: #f4f2ee; min-height: 100vh; }
+
+/* Header block (back arrow + eyebrow, title, subtext) — scoped overrides
+   of the shared h1/.lede/.eyebrow rules, not touched globally since those
+   are used across many other pages. */
+/* Nav-bottom to header-block-top gap, confirmed from Figma metadata: the
+   nav bar (menu-item) spans y:0-74 and the header block (Frame 3034)
+   starts at y:114 in the frame's absolute coordinates — 114-74 = 40px. */
+.create-eyebrow-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding-top: 40px; }
+.create-eyebrow-row .eyebrow { margin: 0; }
+.create-back-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-shrink: 0; }
+/* Figma's own title node: Urbanist SemiBold, 40px/40px, #262728, no
+   tracking — replaces the global h1's 800-weight/34px/-.2px-tracking
+   styling for this page only. margin-bottom overrides the global h1's 4px
+   with Figma's own gap-[8px] value between the title and subtext text
+   nodes (confirmed via both the flex gap in get_design_context's output
+   and the raw y-coordinate math: subtext y:80 - title bottom y:72 = 8). */
+.create-page h1 { font-weight: 600; font-size: 40px; line-height: 40px; letter-spacing: normal; color: #262728; margin-bottom: 8px; }
+/* Figma doesn't give a single "gap" value that separates cleanly into
+   "header-to-fields" vs "header-to-preview-card" — the fields column and
+   the preview card are the two children of the same CSS grid row
+   (.create-layout, align-items:start), so this one property (the header
+   block's own trailing space) is literally the one distance that governs
+   both — increasing it moves the whole grid (both columns) down together.
+   Figma's own frame shows 24px here, not 40 — using 40 per your explicit
+   ask, flagging the mismatch as requested rather than silently matching
+   Figma. */
+.create-page .lede { margin-bottom: 40px; }
 
 /* Nav */
 nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 20px; max-width: 960px; margin: 0 auto; }
@@ -216,12 +256,26 @@ h2 { font-weight: 700; font-size: 20px; letter-spacing: -.1px; margin: 0 0 12px;
 
 
 /* Create screen */
-.create-layout { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: start; }
-@media (max-width: 760px) { .create-layout { grid-template-columns: 1fr; } }
+/* column-gap/row-gap split deliberately, not the `gap` shorthand: the
+   left column is now two grid items (core fields, then the rest of the
+   form — split so the live-preview card can sit between them, see
+   Create.tsx), and they need to read as one continuous column on desktop
+   (row-gap: 0, relying on .field's own margin-bottom for the seam)
+   while the 40px column-gap still separates the form from the preview
+   card. */
+.create-layout { display: grid; grid-template-columns: 1.1fr .9fr; column-gap: 40px; row-gap: 0; align-items: start; }
+@media (max-width: 760px) {
+  /* Single column: core fields, then the preview card, then the rest of
+     the form all stack in that order (see the Create.tsx comment by the
+     preview-wrap block) — row-gap restores breathing room between those
+     three sections here since desktop's row-gap: 0 only makes sense
+     when the two form pieces are meant to look like one column. */
+  .create-layout { grid-template-columns: 1fr; row-gap: 24px; }
+}
 .field { margin-bottom: 18px; }
 label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin-bottom: 6px; }
 input[type=text], input[type=email], input[type=number], input[type=date], input[type=time], select, textarea {
-  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card);
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--card);
   font-family: inherit; font-size: 15px; color: var(--ink);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
@@ -296,11 +350,67 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* Live preview flyer — same protected paper-flyer silhouette as .flyer. */
 .preview-wrap { position: sticky; top: 24px; }
+/* Create-only override: .preview-wrap's sticky positioning is what was
+   causing the reported "drift" — .create-layout's grid row is much taller
+   than the preview card once the form has enough fields (or a cover
+   image), so once scrolling exhausts the sticky element's slack (row
+   height minus card height), it stops tracking the viewport and gets left
+   behind next to whatever mid-form content is at that scroll position.
+   Figma's spec has no scroll behavior to preserve here (it's a static
+   frame) — just "pinned to the top of the column" — so this page doesn't
+   need the sticky/scroll-follow behavior Edit.tsx still uses; plain
+   static positioning combined with .create-layout's existing
+   align-items:start is enough to keep the card's top edge fixed at the
+   top of the row regardless of how tall the form grows. Scoped to
+   .create-page only — Edit.tsx also renders .preview-wrap and keeps its
+   sticky behavior untouched. */
+/* margin-top: 40px matches .create-eyebrow-row's own padding-top: 40px
+   (the nav-to-header gap). That padding lives on the eyebrow row's own
+   box, so it pushes its visible content down without moving where
+   .create-layout's grid row actually starts — align-items:start aligns
+   .preview-wrap to that row's raw top edge (flush with the eyebrow row's
+   un-padded box, not its padded content), so without a matching offset
+   here the card renders 40px too high, level with the nav rather than
+   with "‹ NEW GATHERING". Desktop-only: on the <=760px single-column
+   stack the card sits below the core fields already spaced by
+   .create-layout's row-gap, not beside the padded header, so this
+   shouldn't stack on top of that. */
+.create-page .preview-wrap { position: static; top: auto; margin-top: 40px; }
+@media (max-width: 760px) {
+  .create-page .preview-wrap { margin-top: 0; }
+}
 .preview-flyer { position: relative; background: var(--card); padding: 26px 20px 26px; border-radius: 2px; box-shadow: var(--elevation-3); transform: rotate(1.2deg); min-height: 220px; animation: riseIn .4s var(--ease) backwards; transition: box-shadow .2s var(--ease); }
 .preview-flyer .stripe { position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--ink-faint); }
 .preview-flyer .cat { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin: 14px 0 8px; }
 .preview-flyer .title { font-size: 30px; font-weight: 800; line-height: 1.1; margin: 0 0 14px; word-break: break-word; }
 .preview-flyer .meta { font-size: 13px; color: var(--ink-soft); line-height: 2; }
+
+/* New Gathering's own live-preview card — deliberately NOT sharing
+   .preview-flyer (Edit.tsx also depends on that, and has no Figma spec
+   here): flat, unrotated, subtle two-layer shadow, matching the Board
+   card's surface treatment (bg/border/radius) but its own vertical
+   image-on-top layout, per the "Komon board - Bills"-named frames that
+   actually contain this New Gathering form's Figma design. */
+.create-preview-card {
+  background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; padding: 16px;
+  display: flex; flex-direction: column; gap: 22px;
+  box-shadow: 0 1px 2px rgba(12, 12, 13, .1), 0 1px 2px rgba(12, 12, 13, .05);
+}
+.create-preview-image { display: block; width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; object-fit: cover; }
+.create-preview-body { display: flex; flex-direction: column; gap: 24px; }
+.create-preview-eyebrow {
+  font-family: 'DM Mono', monospace; font-size: 16px; line-height: 24px; letter-spacing: -.08px;
+  color: #595959; text-transform: uppercase;
+}
+.create-preview-title {
+  font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px;
+  letter-spacing: -.16px; color: #030302; word-break: break-word;
+}
+.create-preview-meta { display: flex; flex-direction: column; gap: 8px; }
+.create-preview-meta-row {
+  display: flex; align-items: center; gap: 15px;
+  font-family: 'DM Mono', monospace; font-size: 16px; line-height: 24px; letter-spacing: -.08px; color: #595959;
+}
 
 /* Detail screen */
 .detail-top { display: grid; grid-template-columns: 340px 1fr; gap: 36px; align-items: start; }
@@ -550,7 +660,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 .waitlist-modal-field input {
   font-family: 'Inter', sans-serif; font-size: 14px; line-height: 22px; color: #0f1010;
-  background: #fff; border: 1px solid #dde1e9; border-radius: 4px; padding: 8px 12px; width: 100%;
+  background: #fff; border: 1px solid #dde1e9; border-radius: var(--radius-input); padding: 8px 12px; width: 100%;
 }
 .waitlist-modal-field input::placeholder { color: #c1c8d7; }
 .waitlist-modal-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }

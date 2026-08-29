@@ -175,15 +175,28 @@ export function Create() {
   const locStr = location || 'Add a place';
 
   return (
-    <div className="wrap">
-      <p className="eyebrow">New gathering</p>
-      <h1>Pin up the details</h1>
-      <p className="lede">
-        Fill this in once. Everything on the right updates live — that's the flyer people will actually see.
-      </p>
-
+    <div className="create-page">
+      <div className="wrap">
       <div className="create-layout">
         <div>
+          {/* Header block moved inside the grid's first column so
+              .create-layout's row 1 starts at the eyebrow row's top, not
+              at the Title field's top — Figma's frame has the header
+              block (Frame 3034) and the preview card (Frame 1618868764)
+              both starting at the same y (114), confirmed via
+              get_metadata, so the card needs to top-align with the
+              eyebrow row itself, not the form fields below it. */}
+          <div className="create-eyebrow-row">
+            <button type="button" className="create-back-btn" onClick={() => navigate('/')} aria-label="Back to board">
+              <img src="/icons/board/chevron-back-gray.svg" alt="" width={24} height={24} />
+            </button>
+            <p className="eyebrow">New gathering</p>
+          </div>
+          <h1>Pin up the details</h1>
+          <p className="lede">
+            Fill this in once. Everything on the right updates live — that's the flyer people will actually see.
+          </p>
+
           <div className="field">
             <label>Title</label>
             <input
@@ -255,6 +268,50 @@ export function Create() {
               onChange={(e) => setLocation(e.target.value)}
             />
           </div>
+        </div>
+
+        {/* Preview card sits between the "core" fields above
+            (Title/Cover image/Category/Date/Time/Location — the only
+            fields that actually feed the live preview) and the "rest" of
+            the form below (Capacity/access/split/poll — none of which
+            the preview reflects). On desktop's 2-column grid this has no
+            visual effect: default grid auto-placement fills row 1 (core,
+            then preview) before wrapping "rest" to row 2 col 1, identical
+            to the previous 2-child layout. On the <=760px single-column
+            breakpoint, the same auto-placement stacks the preview right
+            after the fields that determine what it shows, instead of
+            after every optional field (Capacity/access/split-a-cost/
+            poll) — which is where it landed before, sometimes dozens of
+            scroll-lengths down once those optional sections were
+            expanded. .preview-wrap (sticky positioning only, no visual
+            styling of its own) stays shared with Edit.tsx's identical
+            preview. The card itself is Create-only — see
+            .create-preview-* in index.css, deliberately not reusing
+            .preview-flyer since Edit.tsx also depends on that and has no
+            Figma spec of its own here. */}
+        <div className="preview-wrap">
+          <div className="create-preview-card">
+            {imagePreview && <img className="create-preview-image" src={imagePreview} alt="" />}
+            <div className="create-preview-body">
+              <div className="create-preview-eyebrow">{c.label}</div>
+              <div className="create-preview-title">{title || 'Your gathering title'}</div>
+              <div className="create-preview-meta">
+                <div className="create-preview-meta-row">
+                  {dateStr}
+                  {time && (
+                    <>
+                      <span className="board-dot" />
+                      {time}
+                    </>
+                  )}
+                </div>
+                <div className="create-preview-meta-row">{locStr}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
           <div className="field">
             <label>Capacity</label>
             <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} />
@@ -456,21 +513,7 @@ export function Create() {
             {submitting ? 'Creating…' : 'Create gathering'}
           </button>
         </div>
-
-        <div className="preview-wrap">
-          <div className="preview-flyer">
-            <div className="stripe" />
-            <div className="cat">{c.label}</div>
-            <div className="title">{title || 'Your gathering title'}</div>
-            <div className="meta">
-              {dateStr}
-              {time ? ` · ${time}` : ''}
-              <br />
-              {locStr}
-            </div>
-            {imagePreview && <div className="flyer-photo" style={{ backgroundImage: `url(${imagePreview})` }} />}
-          </div>
-        </div>
+      </div>
       </div>
     </div>
   );
