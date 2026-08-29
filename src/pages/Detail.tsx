@@ -146,6 +146,15 @@ export function Detail() {
         </div>
 
         <div>
+          {/* Matches the left column's BackLink height exactly (64px row
+              + 6px margin-bottom = 70px, measured live) so this column's
+              first real card starts at the same y as the hero card
+              instead of the grid's raw top — .detail-top's align-items:
+              start means each column's own content just flows from its
+              own top, and only the left column has anything there.
+              Same isPersistent gate as BackLink itself: no spacer needed
+              if that isn't rendering either. */}
+          {isPersistent && <div style={{ height: 70 }} />}
           {isOrganizer && <OrganizerPanel gathering={gathering} onChange={load} />}
 
           {isCancelled ? (

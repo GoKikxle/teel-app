@@ -663,6 +663,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .share-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .share-row input { font-size: 13px; }
 .copy-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 8px; }
+/* Overrides .panel .btn-outline:hover's solid #1d2129 fill — that rule
+   assumes text content whose color also flips to white on hover, but
+   this button's only content is an <img> icon with its stroke color
+   baked into the SVG (#1D2129, same as the button's own hover fill),
+   so it went invisible on hover. Figma's a static export with no hover
+   variant captured for this button, so no spec to pull; using the same
+   light-tint hover language already established elsewhere in this
+   redesign (rgba/light-gray tints) instead of a solid fill.
+   .btn-outline.copy-btn:hover intentionally outranks
+   .panel .btn-outline:hover (3 classes/pseudo vs 2) rather than relying
+   on source order. */
+.btn-outline.copy-btn:hover { background: #f5f5f5; color: inherit; }
 /* Fills the panel edge-to-edge (was capped at max-width:260px, reading
    inset/smaller than the design) and matches the flat #F4F2EE background
    used everywhere else in this redesign, not the old dark grey. */
