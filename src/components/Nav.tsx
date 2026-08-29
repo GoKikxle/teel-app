@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom';
+import { Menu } from '@base-ui/react/menu';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
@@ -7,7 +8,7 @@ import { useCreateGate } from '../hooks/useCreateGate';
 import { fetchGatheringKind } from '../data/gatherings';
 import type { GatheringKind } from '../lib/database.types';
 import { SignInModal } from './SignInModal';
-import { Wordmark } from './Wordmark';
+import { Logo } from './Logo';
 
 export function Nav() {
   const navigate = useNavigate();
@@ -66,7 +67,7 @@ export function Nav() {
         <nav>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <button className="word" onClick={() => navigate('/')}>
-              <Wordmark />
+              <Logo />
             </button>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -102,54 +103,82 @@ export function Nav() {
       <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button className="word" onClick={() => navigate('/')}>
-            <Wordmark />
+            <Logo />
           </button>
         </div>
       </nav>
     );
   }
 
+  // Signed-in nav — pulled from the "Komon board - All/Gatherings/Bills"
+  // Figma frames' shared menu-item bar (all three show the exact same nav,
+  // so one implementation covers every Board tab) plus the "Komon - Log
+  // out" frame for the account dropdown's open state.
   return (
     <>
-      <nav>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+      <nav className="board-nav">
+        <div className="board-nav-inner">
           <button className="word" onClick={() => navigate('/')}>
-            <Wordmark />
+            <Logo />
           </button>
-          <span className="vis-badge" title={email ?? undefined}>
-            {email}
-          </span>
-          <button
-            onClick={handleSignOut}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--danger)',
-              padding: '2px 4px',
-              marginLeft: 2,
-            }}
-          >
-            Log out
-          </button>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {installable && (
-            <button className="navbtn ghost" onClick={handleInstall}>
-              Install app
+          <div className="board-nav-actions">
+            {installable && (
+              <button className="navbtn" onClick={handleInstall}>
+                Install app
+              </button>
+            )}
+            <Link to="/" className="navbtn">
+              Board
+            </Link>
+            <button className="navbtn" onClick={createGate.requestCreate}>
+              + New gathering
             </button>
-          )}
-          <Link to="/" className="navbtn ghost" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-            Board
-          </Link>
-          <button className="navbtn ghost" onClick={createGate.requestCreate}>
-            + New gathering
-          </button>
-          <button className="navbtn" onClick={splitBillGate.requestCreate}>
-            + Split Bill
-          </button>
+            <button className="navbtn accent" onClick={splitBillGate.requestCreate}>
+              +Split bill
+            </button>
+            <Menu.Root>
+              <Menu.Trigger className="account-trigger" aria-label="Account menu">
+                <img src="/icons/board/profile-circle.svg" alt="" width={24} height={24} />
+                <img src="/icons/board/caret-down.svg" alt="" width={24} height={24} />
+              </Menu.Trigger>
+              <Menu.Portal>
+                <Menu.Positioner sideOffset={8} align="end">
+                  <Menu.Popup className="account-dropdown">
+                    <div className="account-dropdown-email">
+                      <img src="/icons/board/profile-circle.svg" alt="" width={20} height={20} />
+                      <span>{email}</span>
+                    </div>
+                    <Menu.Item className="account-dropdown-logout" onClick={handleSignOut}>
+                      Log out
+                      <img src="/icons/board/log-out.svg" alt="" width={20} height={20} />
+                    </Menu.Item>
+                  </Menu.Popup>
+                </Menu.Positioner>
+              </Menu.Portal>
+            </Menu.Root>
+          </div>
+          {/* Mobile collapses everything above into one hamburger menu — see
+              the "Header Menu" mobile Figma frame. .board-nav-actions and
+              this trigger are CSS-toggled by breakpoint, never both visible. */}
+          <Menu.Root>
+            <Menu.Trigger className="board-nav-mobile-trigger" aria-label="Menu">
+              <img src="/icons/board/menu-alt.svg" alt="" width={24} height={24} />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner className="mobile-nav-positioner">
+                <Menu.Popup className="mobile-nav-menu">
+                  <div className="mobile-nav-menu-item mobile-nav-menu-email">
+                    <img src="/icons/board/profile-circle.svg" alt="" width={20} height={20} />
+                    <span>{email}</span>
+                  </div>
+                  <Menu.Item className="mobile-nav-menu-item" onClick={handleSignOut}>
+                    Log out
+                    <img src="/icons/board/log-out.svg" alt="" width={20} height={20} />
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
         </div>
       </nav>
       <SignInModal
