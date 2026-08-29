@@ -19,6 +19,29 @@
 // Vercel project's Environment Variables — VITE_SUPABASE_URL and
 // VITE_SUPABASE_ANON_KEY must already be set there for the production
 // build to work at all.
+//
+// public/og/default.png — the fallback image below when there's no real
+// cover photo — is a single branded card (--accent pink + the white Komon
+// logo lockup), not per-category colors like it used to be: Detail.tsx's
+// own no-cover-image fallback (.chat-card .thumb-fallback in index.css)
+// is the same uniform treatment regardless of category, so this now
+// matches that instead of a category color that isn't shown anywhere
+// else in the app. It's a static image, not regenerated per-gathering —
+// og:title/og:description below already carry the real per-item text
+// (WhatsApp/etc. show those next to the image), so the marginal value of
+// baking title/date into the image pixels too is low relative to the
+// cost: there's no image-generation dependency in this repo (Edge
+// Runtime can't run one anyway), and hand-rolling a rasterizer for the
+// logo's actual vector paths — as opposed to the flat rectangles/circles
+// the old per-category generator drew — isn't reasonable to do from
+// scratch. If per-item dynamic images are wanted later, @vercel/og
+// (Satori) running as its own edge function is the standard way to get
+// real text rendered into these images. To regenerate this static image
+// (e.g. after a brand color/logo change): render a 1200x630 div with
+// background var(--accent) containing the icon+lettermark lockup scaled
+// 3x from the 24px icon/85x16 lettermark/4px gap lockup used elsewhere
+// (72px icon, 255x48 lettermark, 12px gap, centered), capture it, and
+// save over public/og/default.png at exactly 1200x630.
 export const config = {
   matcher: ['/g/:id'],
 };
@@ -35,11 +58,8 @@ declare const process: { env: Record<string, string | undefined> };
 const CRAWLER_UA =
   /facebookexternalhit|WhatsApp|Twitterbot|Slackbot|TelegramBot|Discordbot|LinkedInBot|SkypeUriPreview|Pinterest|redditbot|Applebot|Iframely|Embedly|vkShare|W3C_Validator/i;
 
-const KNOWN_CATEGORIES = new Set(['hike', 'brunch', 'game', 'dj', 'poetry', 'other']);
-
 interface GatheringRow {
   title: string;
-  category: string;
   gathering_date: string;
   gathering_time: string | null;
   location: string | null;
@@ -77,7 +97,7 @@ async function fetchGathering(id: string): Promise<GatheringRow | null> {
 
   const endpoint =
     `${url}/rest/v1/gatherings?id=eq.${encodeURIComponent(id)}` +
-    `&select=title,category,gathering_date,gathering_time,location,cover_image_url,cancelled_at`;
+    `&select=title,gathering_date,gathering_time,location,cover_image_url,cancelled_at`;
 
   const res = await fetch(endpoint, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
   if (!res.ok) return null;
@@ -91,9 +111,9 @@ function metaResponse(params: {
   title: string;
   description: string;
   image: string;
-  // Only known-accurate for the six generated fallback cards in
-  // public/og/*.png (always exactly 1200x630 by construction). A real
-  // uploaded cover photo's actual dimensions aren't known here without
+  // Only known-accurate for the single branded fallback card,
+  // public/og/default.png (always exactly 1200x630 by construction). A
+  // real uploaded cover photo's actual dimensions aren't known here without
   // fetching and decoding the image ourselves, and declaring 1200x630
   // for a photo that's actually e.g. 1400x1400 is just false metadata —
   // omit the tags entirely rather than assert a size we haven't verified.
@@ -154,7 +174,7 @@ export default async function middleware(request: Request): Promise<Response | u
       path: url.pathname,
       title: 'Gathering not found — Komon',
       description: 'This gathering may have been removed.',
-      image: `${url.origin}/og/other.png`,
+      image: `${url.origin}/og/default.png`,
       imageDimensions: { width: 1200, height: 630 },
     });
   }
@@ -169,9 +189,8 @@ export default async function middleware(request: Request): Promise<Response | u
     ? `Cancelled by the organizer. Was ${dateLabel}${timeLabel}${locationLabel}.`
     : `${dateLabel}${timeLabel}${locationLabel}`;
 
-  const category = KNOWN_CATEGORIES.has(gathering.category) ? gathering.category : 'other';
   const usingFallback = !gathering.cover_image_url;
-  const image = gathering.cover_image_url || `${url.origin}/og/${category}.png`;
+  const image = gathering.cover_image_url || `${url.origin}/og/default.png`;
 
   return metaResponse({
     origin: url.origin,
