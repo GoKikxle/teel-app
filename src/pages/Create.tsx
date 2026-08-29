@@ -7,6 +7,7 @@ import { CATS, fmtDate } from '../lib/constants';
 import { createGathering, uploadCoverImage } from '../data/gatherings';
 import type { Category, PayMethod, SplitMethod, Visibility } from '../lib/database.types';
 import { SignInModal } from '../components/SignInModal';
+import { BackLink } from '../components/BackLink';
 
 interface ItemRow {
   name: string;
@@ -204,12 +205,7 @@ export function Create() {
               both starting at the same y (114), confirmed via
               get_metadata, so the card needs to top-align with the
               eyebrow row itself, not the form fields below it. */}
-          <div className="create-eyebrow-row">
-            <button type="button" className="create-back-btn" onClick={() => navigate('/')} aria-label="Back to board">
-              <img src="/icons/board/chevron-back-gray.svg" alt="" width={24} height={24} />
-            </button>
-            <p className="eyebrow">New gathering</p>
-          </div>
+          <BackLink label="New gathering" onClick={() => navigate('/')} />
           <h1>Pin up the details</h1>
           <p className="lede">
             Fill this in once. Everything on the right updates live — that's the flyer people will actually see.

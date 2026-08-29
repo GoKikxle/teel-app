@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { GatheringWithRelations } from '../../lib/database.types';
 import { markEmailAccessed } from '../../data/gatherings';
+import { BackLink } from '../BackLink';
 
 export function InviteGate({
   gathering,
@@ -37,13 +38,10 @@ export function InviteGate({
 
   return (
     <div className="wrap">
-      <button
-        className="btn-outline"
-        style={{ marginBottom: 20 }}
+      <BackLink
+        label="Invite only"
         onClick={() => (previewAsGuest ? navigate(`/g/${gathering.id}`) : navigate('/'))}
-      >
-        ← {previewAsGuest ? 'Back to your view' : 'Back to board'}
-      </button>
+      />
       {previewAsGuest && <p className="poll-hint" style={{ textAlign: 'center' }}>Previewing what an invited guest sees</p>}
       <div className="gate-wrap">
         <div className="lock">✉</div>

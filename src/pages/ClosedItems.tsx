@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { fetchClosedGatherings, type ClosedGatheringSummary } from '../data/gatherings';
+import { BackLink } from '../components/BackLink';
 
 // Reference-only list of the signed-in organizer's own closed items
 // (gatherings and split bills share the same cancelled_at mechanism, so one
@@ -37,32 +38,39 @@ export function ClosedItems() {
 
   return (
     <div className="wrap">
-      <button className="btn-outline" style={{ marginBottom: 20 }} onClick={() => navigate('/')}>
-        ← Back to board
-      </button>
-      <p className="eyebrow">Closed</p>
-      <h1>Closed gatherings &amp; bills</h1>
-      <p className="lede">Reference only — these are no longer active. Open one to view details or delete it.</p>
+      <div className="closed-panel">
+        <BackLink label="Closed" onClick={() => navigate('/')} />
+        <h1>Closed gatherings and bills</h1>
 
-      {loading ? (
-        <p className="lede">Loading…</p>
-      ) : items.length === 0 ? (
-        <p className="lede">Nothing closed yet.</p>
-      ) : (
-        <div className="paid-list">
-          {items.map((item) => (
-            <Link key={item.id} to={`/g/${item.id}`} className="paid-item" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span>{item.title}</span>
-              <span style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--ink-faint)' }}>
-                <span>{item.kind === 'split_bill' ? 'Split Bill' : 'Gathering'}</span>
-                <span>
-                  {new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        {loading ? (
+          <p className="lede">Loading…</p>
+        ) : items.length === 0 ? (
+          <p className="lede">Nothing closed yet.</p>
+        ) : (
+          <div className="closed-list">
+            {items.map((item) => (
+              <Link key={item.id} to={`/g/${item.id}`} className="closed-row">
+                <span className="closed-row-title">{item.title}</span>
+                <span className="closed-row-meta">
+                  <span>{item.kind === 'split_bill' ? 'Split Bill' : 'Gathering'}</span>
+                  <span>{formatClosedDate(item.created_at)}</span>
                 </span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+// en-GB's toLocaleDateString doesn't reliably include the comma Figma's
+// "23 Aug, 2026" format shows (locale/engine-dependent) — built manually
+// to guarantee it.
+function formatClosedDate(iso: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('en-GB', { day: 'numeric' });
+  const month = d.toLocaleDateString('en-GB', { month: 'short' });
+  const year = d.getFullYear();
+  return `${day} ${month}, ${year}`;
 }

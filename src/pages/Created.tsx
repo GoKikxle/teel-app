@@ -33,6 +33,10 @@ export function Created() {
           View gathering
         </button>
         <br />
+        {/* Not converted to BackLink deliberately — this is a secondary
+            action next to "View gathering" inside a centered success
+            card, not a page-level "go back" nav affordance, so the small
+            eyebrow-link pattern doesn't fit the same role here. */}
         <button className="btn-outline" onClick={() => navigate('/')}>
           Back to board
         </button>

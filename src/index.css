@@ -33,10 +33,12 @@
 
   --radius: 16px;
   /* Split out from --radius deliberately — that token is shared by
-     buttons/cards/panels too (.primary-btn, .panel, .mode-card,
-     .ticket-card, .modal-card, .btn-outline, .poll-opt, .toggle-row,
-     .image-picker/.image-preview), which stay at 16px. Only actual
-     <input>/<select>/<textarea> elements use this one. */
+     buttons/cards/panels too (.primary-btn, .mode-card, .ticket-card,
+     .modal-card, .image-picker/.image-preview), which stay at 16px.
+     .panel/.btn-outline/.poll-opt/.toggle-row moved to their own
+     literal 12px/100px values as part of the Figma 1129:4411 detail-page
+     redesign, so they're no longer tied to this token. Only actual
+     <input>/<select>/<textarea> elements use --radius-input. */
   --radius-input: 8px;
   --ease: cubic-bezier(.4, 0, .2, 1);
 
@@ -57,13 +59,15 @@
 @keyframes shimmer { 0% { background-position: 150% 50%; } 100% { background-position: -50% 50%; } }
 
 html, body, #root { height: 100%; }
+/* #F4F2EE matches .board-page's own background exactly (index.css,
+   grepped from source rather than eyeballed) — the corkboard dot-grid
+   pattern is dropped app-wide in favor of the same flat background
+   Board/Create/Split-Bill-create/Detail's redesigned panels already use. */
 body {
   margin: 0;
-  background: var(--board);
+  background: #f4f2ee;
   color: var(--ink);
   min-height: 100vh;
-  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
-  background-size: 22px 22px;
 }
 a { color: inherit; }
 button { font-family: inherit; }
@@ -217,7 +221,10 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 .mobile-nav-menu-email span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 h1 { font-weight: 800; font-size: 34px; letter-spacing: -.2px; margin: 8px 0 4px; line-height: 1.1; }
-h2 { font-weight: 700; font-size: 20px; letter-spacing: -.1px; margin: 0 0 12px; }
+/* Figma 1129:4411 ("Komon UI updates") — SemiBold/near-black replaces
+   the old Bold/default-ink heading treatment app-wide, matching the same
+   shift already applied to .hero-flyer's title. */
+h2 { font-weight: 600; font-size: 20px; line-height: 28px; letter-spacing: -.1px; color: #030302; margin: 0 0 12px; }
 .eyebrow { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-faint); margin: 0 0 6px; }
 
 /* Split Bill step wizard */
@@ -301,13 +308,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .cat-chip { font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--card); cursor: pointer; color: var(--ink-soft); transition: background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease); }
 .cat-chip:active { transform: scale(.94); }
 .cat-chip.active { background: var(--accent); color: #fff; border-color: transparent; }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: var(--radius); background: var(--card); box-shadow: var(--elevation-1); margin-bottom: 10px; }
-.toggle-row .tlabel { font-size: 14px; font-weight: 600; }
-.toggle-row .tsub { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
-.switch { position: relative; width: 38px; height: 22px; background: var(--line); border-radius: 20px; border: none; cursor: pointer; flex-shrink: 0; transition: background .2s var(--ease); }
-.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); }
+/* Figma 1129:4411 ("Payment reminder" / "Input / Basic") — same
+   shadow-to-border flattening as .panel, own bordered card rather than a
+   plain shadowed row. */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #f0f0f0; border-radius: 12px; background: var(--card); margin-bottom: 10px; }
+.toggle-row .tlabel { font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
+/* gap-[4px] per Figma's own "Payment reminder" text block (pulled
+   earlier this session) — was 2px, half the spec value, reading cramped. */
+.toggle-row .tsub { font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 400; color: #595959; margin-top: 4px; }
+/* Figma's Switch / Basic — 28x16 track, 12px handle, replaces the
+   previous 38x22/18px sizing app-wide. */
+.switch { position: relative; width: 28px; height: 16px; background: var(--line); border-radius: 16px; border: none; cursor: pointer; flex-shrink: 0; transition: background .2s var(--ease); }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); }
 .switch.on { background: var(--accent); }
-.switch.on::after { transform: translateX(16px); }
+.switch.on::after { transform: translateX(12px); }
 .subfields { padding: 12px 14px 2px; border-left: 2px solid var(--line); margin: -4px 0 14px 6px; }
 .radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .radio-chip { font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: 16px; border: 1px solid var(--line); cursor: pointer; background: var(--card); color: var(--ink); }
@@ -335,7 +349,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* Cover images */
 .flyer-photo { width: 100%; aspect-ratio: 1/1; background-size: cover; background-position: center; border-radius: 3px; margin-bottom: 12px; background-color: var(--line); }
-.hero-flyer .flyer-photo { aspect-ratio: 1/1; margin-top: 14px; margin-bottom: 0; }
+.hero-flyer .flyer-photo { aspect-ratio: 1/1; margin: 0; border-radius: 4px; }
 .preview-flyer .flyer-photo { aspect-ratio: 1/1; margin-top: 16px; margin-bottom: 0; }
 .image-picker { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 14px; text-align: center; margin-bottom: 18px; }
 .image-picker.filled { padding: 0; border-style: solid; overflow: hidden; }
@@ -347,6 +361,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* Visibility badge */
 .vis-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 12px; background: var(--line); color: var(--ink-soft); margin-left: 8px; vertical-align: middle; }
+/* Figma 1129:4411 cancelled pill — same spec as .hero-cancelled-badge
+   (Detail.tsx's hero card), reused here for SplitPayPanel's own inline
+   "Cancelled" label, the only other place this combo is still used. */
 .email-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
 .email-row input { flex: 1; }
 .gate-wrap { max-width: 420px; margin: 60px auto; text-align: center; animation: riseIn .4s var(--ease) backwards; }
@@ -433,25 +450,87 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 /* Detail screen */
 .detail-top { display: grid; grid-template-columns: 340px 1fr; gap: 36px; align-items: start; }
 @media (max-width: 760px) { .detail-top { grid-template-columns: 1fr; } }
-.hero-flyer { position: relative; background: var(--card); padding: 26px 22px 30px; border-radius: 2px; box-shadow: var(--elevation-3); transform: rotate(-1deg); animation: riseIn .4s var(--ease) backwards; }
-.hero-flyer .stripe { position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--ink-faint); }
-.hero-flyer .cat { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin: 16px 0 10px; }
-.hero-flyer .title { font-size: 32px; font-weight: 800; line-height: 1.1; margin: 0 0 16px; }
-.hero-flyer .meta { font-size: 13px; color: var(--ink-soft); line-height: 2; }
+/* Figma "Created Gathering"/"Created Bill" frames (node 1129:4426 /
+   1129:4568) — flat card, no rotation/stripe (dropped from this design
+   entirely), same subtle 2-layer shadow as .create-preview-card but its
+   own radius/background/eyebrow-font, so kept as separate classes rather
+   than shared — see the diff reported before this round's implementation. */
+.hero-flyer {
+  position: relative; background: var(--card); padding: 16px; border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(12, 12, 13, .1), 0 1px 2px rgba(12, 12, 13, .05);
+  display: flex; flex-direction: column; gap: 22px;
+  animation: riseIn .4s var(--ease) backwards;
+}
+.hero-flyer-body { display: flex; flex-direction: column; gap: 16px; }
+.hero-flyer .cat {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 16px; line-height: 24px;
+  letter-spacing: -.08px; color: #595959; text-transform: uppercase; margin: 0;
+}
+.hero-flyer .title {
+  font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px;
+  letter-spacing: -.16px; color: #030302; margin: 0;
+}
+.hero-flyer .meta {
+  display: flex; flex-direction: column; gap: 8px;
+  font-family: 'DM Mono', monospace; font-size: 16px; line-height: 24px; letter-spacing: -.08px; color: #595959;
+}
+.hero-flyer .meta-row { display: flex; align-items: center; gap: 15px; }
+/* Visibility/cancelled pills — scoped to this card only, not sharing
+   .vis-badge/.cancelled-badge (SplitPayPanel.tsx reuses those for its
+   own unrelated inline "Cancelled" label that Figma isn't redesigning
+   here). text-transform:uppercase inherits from .hero-flyer .cat above. */
+.hero-vis-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #fcfaf5; border-radius: 100px; padding: 4px 12px 4px 8px;
+  font-family: 'Urbanist', sans-serif; font-weight: 400; font-size: 12px; line-height: 16px; color: #4f483b;
+}
+.hero-vis-dot { width: 4px; height: 4px; border-radius: 50%; background: #4f483b; flex-shrink: 0; }
+/* Pink per explicit ask this round — note Figma's own "Cancelled
+   Gathering" frame (node 1129:4807, re-pulled fresh to double check)
+   actually shows this badge tan/beige (#ede5d3/#8e6a1a), same as when
+   this was first built. Deliberately overriding that here since the
+   request was explicit ("apply the brand pink color... currently a
+   muted tan/beige badge — should be pink"), not a "match Figma" one —
+   flagging the conflict rather than silently picking a side. */
+.hero-cancelled-badge {
+  display: inline-flex; align-items: center;
+  background: rgba(255, 45, 85, .1); border-radius: 100px; padding: 4px 12px;
+  font-family: 'Urbanist', sans-serif; font-weight: 400; font-size: 12px; line-height: 16px; color: var(--accent);
+}
 
-.panel { background: var(--card); border-radius: var(--radius); padding: 18px 18px 20px; margin-bottom: 20px; box-shadow: var(--elevation-2); animation: riseIn .35s var(--ease) backwards; transition: box-shadow .2s var(--ease); }
+/* Figma 1129:4411 — every detail-view panel (Host tools/Who's in/poll/
+   Split & pay/Progress) swaps its drop shadow for a flat 1px border,
+   matching .hero-flyer's own shadow-to-border change. */
+.panel { background: var(--card); border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; animation: riseIn .35s var(--ease) backwards; }
 .panel:nth-of-type(1) { animation-delay: .02s; }
 .panel:nth-of-type(2) { animation-delay: .07s; }
 .panel:nth-of-type(3) { animation-delay: .12s; }
 .panel:nth-of-type(4) { animation-delay: .17s; }
+/* Figma "Who's in?" — per-attendee row (avatar+name, contact pill only
+   for the organizer), replacing the old overlapping AvatarStack +
+   comma-joined names line. */
 .rsvp-list { margin: 0 0 14px; }
+.rsvp-rows { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+.rsvp-row { display: flex; align-items: center; gap: 15px; }
+.rsvp-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; flex-shrink: 0; }
+.rsvp-name { font-family: 'Urbanist', sans-serif; font-size: 14px; color: #595959; letter-spacing: -.07px; }
+.rsvp-contact { background: #fcfaf5; border-radius: 100px; padding: 4px 16px; font-family: 'Urbanist', sans-serif; font-size: 14px; color: #6b6b6b; }
 .avatar-stack { display: flex; align-items: center; margin-bottom: 8px; }
 .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; border: 2px solid var(--card); margin-left: -10px; flex-shrink: 0; }
 .avatar:first-child { margin-left: 0; }
 .avatar.more { background: var(--line); color: var(--ink-soft); }
 .avatar-names { font-size: 12px; color: var(--ink-faint); margin: 0 0 14px; }
 
-.paid-ring { width: 38px; height: 38px; border-radius: 50%; position: relative; flex-shrink: 0; background: conic-gradient(var(--success) calc(var(--pct) * 1%), var(--line) 0); }
+/* Figma 1129:4411 "Type 1" ring — accent pink replaces the green
+   --success fill (same ring style used for both the gathering's
+   Split & pay and the bill's Progress panel, always accent-colored
+   there regardless of percentage, not a distinct "complete" state). */
+/* Track color confirmed from the actual ring SVG assets (Figma "Type 1"
+   component, "Background"/"Front" paths): both use stroke #FF2D55 — the
+   unfilled track at stroke-opacity:0.1 (a light tint, not the generic
+   --line gray this was using), the filled arc at full opacity. */
+.paid-ring { width: 38px; height: 38px; border-radius: 50%; position: relative; flex-shrink: 0; background: conic-gradient(var(--accent) calc(var(--pct) * 1%), rgba(255, 45, 85, .1) 0); }
 .paid-ring::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--card); }
 .paid-ring span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--ink-soft); }
 .flyer .paid-ring { position: absolute; top: 16px; right: 16px; background: conic-gradient(var(--success) calc(var(--pct) * 1%), rgba(0, 0, 0, .12) 0); }
@@ -465,8 +544,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
   background: var(--danger); color: #fff; padding: 4px 9px; border-radius: 12px;
 }
-.cancelled-badge { background: var(--danger); color: #fff; }
-.cancelled-panel { box-shadow: 0 0 0 1.5px var(--danger), var(--elevation-2); }
+.vis-badge.cancelled-badge {
+  background: #ede5d3; color: #8e6a1a; font-family: 'Urbanist', sans-serif; font-weight: 400;
+  font-size: 12px; line-height: 16px; letter-spacing: normal; border-radius: 100px; padding: 4px 12px;
+}
+/* Red-stroke box removed per this round's ask — .cancelled-panel now
+   renders as a completely plain .panel (flat #f0f0f0 border, no extra
+   ring), relying on .hero-cancelled-badge's pink pill (on the hero
+   card above) to signal the cancelled state instead. */
 
 .success-check { width: 64px; height: 64px; border-radius: 50%; background: var(--success); color: #fff; font-size: 30px; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; animation: riseIn .45s var(--ease) backwards, popIn .5s var(--ease); }
 
@@ -482,10 +567,38 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .btn-outline.done { border-color: var(--success); color: var(--success); }
 .btn-outline:disabled { opacity: .4; cursor: not-allowed; }
 .btn-outline:disabled:hover { background: none; color: var(--ink); }
+/* Figma 1129:4411 — light-bordered pill replaces the bold dark-outline
+   rounded-rect button, but ONLY inside the redesigned white panels
+   (Host tools' "Edit gathering"/"Cancel gathering" etc.) — that's the
+   only context Figma actually shows this treatment in. Buttons that sit
+   directly on a page background (Create.tsx/SplitBillCreate.tsx's
+   "Back", sign-in gate buttons) keep the bold border above: #f0f0f0 is
+   nearly invisible against .create-page/.split-page's cream background
+   or the default corkboard, so applying it there isn't a faithful
+   reading of the spec, just an extension of it into contexts Figma
+   never covered. */
+.panel .btn-outline {
+  font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 500;
+  border: 1px solid #f0f0f0; color: #1d2129; border-radius: 100px; padding: 10px 16px;
+}
+.panel .btn-outline:hover { background: #1d2129; color: #fff; }
 
 .split-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.split-amt { font-size: 26px; font-weight: 800; color: var(--accent); }
-.paylink-note { font-size: 12px; color: var(--ink-faint); margin: 0 0 16px; line-height: 1.5; }
+/* Figma 1129:4411 Split & pay — big amount + a split-method pill inline
+   (replacing the plain "· label" text), matching the same accent-filled
+   pill pattern the "EQUAL SPLIT"/"PRIVATE"-style badges use elsewhere.
+   Amount color: the Figma mock alternates between #F23506 (an old,
+   retired accent) and #FF2D55 (current) across otherwise-identical
+   cards — a mock inconsistency, not two intentional states, so this
+   uses --accent consistently, same resolution as BoardBillCard.tsx's
+   own amount color. */
+.split-amount-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.split-amt { font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 32px; letter-spacing: -.16px; color: var(--accent); }
+.split-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--accent); color: #fff; font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 12px; text-transform: uppercase; border-radius: 100px; padding: 4px 12px 4px 8px; }
+.split-pill::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: #fff; flex-shrink: 0; }
+/* "Tag / Status" cream info box wrapping the payment-method note. */
+.pay-tag { background: #fcfaf5; border-radius: 8px; padding: 16px; margin: 0 0 16px; }
+.paylink-note { font-family: 'Urbanist', sans-serif; font-size: 16px; line-height: 24px; letter-spacing: -.08px; color: #1d2129; margin: 0; }
 .pay-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 6px; }
 .pay-step { display: flex; gap: 12px; align-items: flex-start; opacity: .5; }
 .pay-step.complete { opacity: 1; }
@@ -493,30 +606,81 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .pay-step.complete .step-n { background: var(--success); border-color: var(--success); color: #fff; }
 .step-body { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
 .step-hint { font-size: 12px; color: var(--ink-faint); }
-.paid-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
-.paid-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.check { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--ink-faint); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
-.check.paid { background: var(--success); border-color: var(--success); color: #fff; }
+/* Figma "Paid gatherers" — its own bordered sub-card (matching .panel's
+   flat border treatment) rather than a plain divided list; checkbox
+   moves to the left of the name instead of a trailing checkmark. */
+.paid-card { border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px; margin: 14px 0; display: flex; flex-direction: column; gap: 12px; }
+.paid-card-title { font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
+.paid-list { display: flex; flex-direction: column; gap: 12px; }
+.paid-item { display: flex; align-items: center; gap: 15px; font-family: 'Urbanist', sans-serif; font-size: 14px; color: #595959; }
+/* Exact spec pulled from the actual Figma checkbox asset
+   (Checkbox/Active/Default): circular (not the 6px-radius square this
+   was using), a light #FF2D55-at-10%-opacity fill (not a solid accent
+   fill — the checkmark itself is the only full-strength accent
+   element), so it stays a light, non-intrusive marker rather than a
+   heavy solid dot. */
+.check { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.check.paid { background: rgba(255, 45, 85, .1); border-color: rgba(255, 45, 85, .1); color: var(--accent); }
 
-.poll-hint { font-size: 12px; color: var(--ink-faint); margin: -6px 0 14px; }
-.poll-opt { display: block; width: 100%; text-align: left; margin-bottom: 10px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--card); cursor: pointer; font-family: inherit; color: var(--ink); transition: border-color .15s, background .15s; }
-.poll-opt:hover { border-color: var(--ink); background: var(--card); }
+/* Closed list page (Figma 1129:4639) — whole page content sits inside
+   one bordered card (unlike every other page here, which uses plain
+   .wrap), with a uniform 24px rhythm between every section AND as the
+   card's own padding (confirmed via absolute-coordinate math: back-row
+   to title, title to subtext, and subtext to the row list are each
+   exactly 24px apart). margin-top:40px replicates the same nav-gap
+   convention used elsewhere, since this card doesn't sit flush under
+   nav the way .create-eyebrow-row normally assumes. */
+.closed-panel { border: 1px solid #f0f0f0; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 24px; margin-top: 40px; }
+.closed-panel .create-eyebrow-row { padding-top: 0; margin-bottom: 0; }
+.closed-panel h1 { font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: #030302; margin: 0; }
+.closed-panel .lede { font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 400; color: #111; line-height: 24px; margin: 0; max-width: none; }
+.closed-list { display: flex; flex-direction: column; }
+.closed-row { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; border-bottom: 1px solid #decfb8; text-decoration: none; color: inherit; }
+.closed-row-title { font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 16px; color: #111; }
+.closed-row-meta { display: flex; align-items: center; gap: 24px; font-family: 'Urbanist', sans-serif; font-weight: 400; font-size: 16px; color: #595959; }
+
+.poll-hint { font-family: 'Urbanist', sans-serif; font-size: 14px; color: #595959; margin: -6px 0 14px; }
+/* Figma 1129:4411 poll option ("Input / Basic" + "Table / Item / Row
+   Control") — label moves above a thin radio+track+count row, replacing
+   the old thick thick bar-with-label-on-top; the filled radio circle
+   itself signals "your choice" instead of a separate checkmark. */
+.poll-opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 16px; border: 1px solid #f0f0f0; border-radius: 12px; background: var(--card); cursor: pointer; font-family: inherit; color: var(--ink); transition: border-color .15s; }
+.poll-opt:hover { border-color: var(--ink); }
 .poll-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.poll-opt.chosen { border-color: var(--accent); border-width: 2px; padding: 11px 13px; }
+.poll-opt.chosen { border-color: var(--accent); }
 .poll-opt.disabled { cursor: default; }
-.poll-opt.disabled:hover { border-color: var(--line); background: var(--card); }
+.poll-opt.disabled:hover { border-color: #f0f0f0; }
 .poll-opt.disabled.chosen:hover { border-color: var(--accent); }
-.poll-track { background: var(--line); border-radius: 4px; height: 24px; position: relative; overflow: hidden; margin-top: 8px; }
-.poll-fill { background: var(--accent); height: 100%; border-radius: 4px; transition: width .3s; }
-.poll-label { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; }
-.poll-check { color: var(--accent); font-weight: 700; }
+.poll-label { font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 500; color: #111; margin-bottom: 8px; }
+.poll-row { display: flex; align-items: center; gap: 10px; }
+.poll-radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line); flex-shrink: 0; position: relative; }
+.poll-opt.chosen .poll-radio { border-color: var(--accent); }
+.poll-opt.chosen .poll-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+.poll-track { flex: 1; background: #f5f5f5; border-radius: 8px; height: 8px; position: relative; overflow: hidden; }
+.poll-fill { background: var(--accent); height: 100%; border-radius: 8px; transition: width .3s; }
+.poll-count { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #6b6b6b; min-width: 16px; text-align: right; }
 
 .share-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .share-row input { font-size: 13px; }
-.copy-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; padding: 0; }
-.chat-mock { background: #E9E9EA; border-radius: 10px; padding: 10px; max-width: 260px; }
-.chat-card { background: var(--card); border-radius: 8px; overflow: hidden; box-shadow: var(--elevation-1); }
+.copy-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 8px; }
+/* Fills the panel edge-to-edge (was capped at max-width:260px, reading
+   inset/smaller than the design) and matches the flat #F4F2EE background
+   used everywhere else in this redesign, not the old dark grey. */
+/* margin-top: 16px matches Figma's own uniform gap-[16px] between every
+   child of the Share panel's content column (header, link input,
+   WhatsApp/QR buttons, this highlight card) — was flush against the
+   buttons row above it. */
+.chat-mock { background: #f4f2ee; border-radius: 10px; padding: 10px; width: 100%; margin-top: 16px; }
+/* Figma 1129:4411 Share bill card — radius 8px -> 16px, drop the shadow
+   (same flatten-to-border direction as the rest of this redesign; no
+   shadow class shown on this node). */
+.chat-card { background: var(--card); border-radius: 16px; overflow: hidden; }
 .chat-card .thumb { height: 70px; background: var(--ink-faint); position: relative; background-size: cover; background-position: center; }
+/* No-cover-image fallback (always the case for split bills, sometimes
+   for gatherings) — a pink brand banner with the white logo lockup,
+   replacing the old flat grey placeholder square. Figma's own spec:
+   175px tall, --accent background. */
+.chat-card .thumb-fallback { height: 175px; background: var(--accent); display: flex; align-items: center; justify-content: center; gap: 4px; }
 .chat-card .body { padding: 9px 10px; }
 .chat-card .t { font-size: 14px; font-weight: 700; margin: 0 0 3px; }
 .chat-card .s { font-size: 11px; color: var(--ink-faint); }
@@ -532,6 +696,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 20px; color: var(--ink-faint); cursor: pointer; line-height: 1; padding: 4px; }
 .modal-close:hover { color: var(--ink); }
 .modal-card-inner { position: relative; }
+/* QR code modal (Figma 1129:4761) — its own card rather than reusing
+   .modal-card: that one is centered-text with a heavy shadow and a
+   380px cap, this one is left-aligned, flat-bordered (matching the rest
+   of this redesign), and sized to fit the 409px QR square exactly
+   (409 + 16px padding each side = 441px). */
+.qr-modal-card { background: var(--card); border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px; max-width: 441px; width: 100%; text-align: left; animation: riseIn .3s var(--ease) backwards; }
+.qr-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.qr-modal-head h2 { flex: 1 0 0; margin: 0; }
+.qr-modal-close { background: none; border: none; cursor: pointer; padding: 0; display: flex; flex-shrink: 0; }
 
 /* Waitlist landing page — pulled from the "Komon waitlist Page" Figma frame
    (node 1028:1101). Full-bleed flat surface, not the corkboard dot-pattern

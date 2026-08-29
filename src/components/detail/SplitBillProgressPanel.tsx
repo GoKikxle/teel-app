@@ -1,5 +1,6 @@
 import type { GatheringWithRelations } from '../../lib/database.types';
 import { splitBillProgress } from '../../data/gatherings';
+import { PaidRing } from '../PaidRing';
 
 // Organizer-facing view for a Split Bill gathering — aggregate progress
 // only, no per-name roster. There's no guest list to show in the first
@@ -7,10 +8,14 @@ import { splitBillProgress } from '../../data/gatherings';
 // have nothing to display anyway.
 export function SplitBillProgressPanel({ gathering }: { gathering: GatheringWithRelations }) {
   const { paidCount, targetCount, collected, target } = splitBillProgress(gathering);
+  const pct = target > 0 ? Math.round((collected / target) * 100) : 0;
 
   return (
     <div className="panel">
-      <h2>Progress</h2>
+      <div className="split-head">
+        <h2 style={{ marginBottom: 0 }}>Progress</h2>
+        <PaidRing pct={pct} size={40} />
+      </div>
       <p className="capline">
         {paidCount} of {targetCount} paid
       </p>

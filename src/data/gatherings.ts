@@ -242,11 +242,12 @@ export interface SplitBillProgress {
   target: number;
 }
 
-// Deliberately *not* paidPct/activeRsvps-percentage math: that computes
-// progress against however many guests have shown up so far, but a Split
-// Bill's "X of Y paid" is against the organizer's target headcount
-// (capacity) and target total (cost_total), which won't generally equal
-// the number of payment records that exist yet.
+// Money-based (collected/target), not headcount-based like paidPct below
+// — a Split Bill's "X of Y collected" is naturally about the amount, not
+// a fraction of paid-vs-total-guests. Both functions now share the same
+// "against capacity, not against however many have RSVP'd so far"
+// denominator choice, just applied to a different unit (£ here, guest
+// count in paidPct).
 export function splitBillProgress(
   gathering: Pick<GatheringWithRelations, 'rsvps' | 'capacity' | 'cost_total' | 'split_method'>
 ): SplitBillProgress {
@@ -562,8 +563,14 @@ export function itemizedTotal(items: CostItem[]): number {
   return items.reduce((sum, item) => sum + Number(item.amount), 0);
 }
 
-export function paidPct(g: Gathering, rsvpCount: number, paidCount: number): number {
+// Against capacity (the target headcount), not however many have RSVP'd
+// so far — same reasoning as splitBillProgress() above: with only 1
+// RSVP in and that person paid, "paid / RSVP'd" reads 100%, which looks
+// like "fully paid" when really 1 of 8 expected people has paid. Ring
+// should climb gradually as payments come in, not jump to full on the
+// first one.
+export function paidPct(g: Gathering, paidCount: number): number {
   if (!g.cost_enabled) return 0;
-  const base = Math.max(rsvpCount, 1);
+  const base = Math.max(g.capacity, 1);
   return Math.min(100, Math.round((paidCount / base) * 100));
 }

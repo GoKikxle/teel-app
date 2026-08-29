@@ -4,6 +4,7 @@ import { Switch } from '@base-ui/react/switch';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { CATS, fmtDate } from '../lib/constants';
+import { BackLink } from '../components/BackLink';
 import {
   createPollOptions,
   fetchGathering,
@@ -201,10 +202,8 @@ export function Edit() {
   if (!gathering || !id) {
     return (
       <div className="wrap">
+        <BackLink label="Board" onClick={() => navigate('/')} />
         <p className="lede">Gathering not found.</p>
-        <button className="btn-outline" onClick={() => navigate('/')}>
-          ← Back to board
-        </button>
       </div>
     );
   }
@@ -212,10 +211,8 @@ export function Edit() {
   if (gathering.organizer_id !== userId) {
     return (
       <div className="wrap">
+        <BackLink label="Gathering" onClick={() => navigate(`/g/${id}`)} />
         <p className="lede">Only the organizer can edit this gathering.</p>
-        <button className="btn-outline" onClick={() => navigate(`/g/${id}`)}>
-          ← Back to gathering
-        </button>
       </div>
     );
   }
@@ -226,10 +223,7 @@ export function Edit() {
 
   return (
     <div className="wrap">
-      <button className="btn-outline" style={{ marginBottom: 20 }} onClick={() => navigate(`/g/${id}`)}>
-        ← Back to gathering
-      </button>
-      <p className="eyebrow">Edit gathering</p>
+      <BackLink label="Edit gathering" onClick={() => navigate(`/g/${id}`)} />
       <h1>Update the details</h1>
       <p className="lede">Changes save to the same link — guests who already have it will see the update.</p>
 

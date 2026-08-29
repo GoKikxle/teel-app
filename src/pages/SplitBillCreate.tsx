@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import { createSplitBill } from '../data/gatherings';
 import type { PayMethod } from '../lib/database.types';
 import { SignInModal } from '../components/SignInModal';
+import { BackLink } from '../components/BackLink';
 
 const TOTAL_STEPS = 4;
 
@@ -114,12 +115,7 @@ export function SplitBillCreate() {
   return (
     <div className="split-page">
       <div className="wrap">
-      <div className="create-eyebrow-row">
-        <button type="button" className="create-back-btn" onClick={() => navigate('/')} aria-label="Back to board">
-          <img src="/icons/board/chevron-back-gray.svg" alt="" width={24} height={24} />
-        </button>
-        <p className="eyebrow">Split bill</p>
-      </div>
+      <BackLink label="Split bill" onClick={() => navigate('/')} />
       <h1>Split a bill, fast</h1>
       <p className="lede">No guest list, no names — just an amount and a payment link.</p>
 

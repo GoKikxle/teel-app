@@ -4,6 +4,7 @@ import { activeRsvps, fetchGathering, splitBillProgress } from '../data/gatherin
 import type { GatheringWithRelations } from '../lib/database.types';
 import { useAuth } from '../hooks/useAuth';
 import { CATS, VIS, fmtDate } from '../lib/constants';
+import { BackLink } from '../components/BackLink';
 import { RsvpPanel } from '../components/detail/RsvpPanel';
 import { SplitPayPanel } from '../components/detail/SplitPayPanel';
 import { PollPanel } from '../components/detail/PollPanel';
@@ -56,10 +57,8 @@ export function Detail() {
   if (!gathering || !id) {
     return (
       <div className="wrap">
+        <BackLink label="Board" onClick={() => navigate('/')} />
         <p className="lede">Gathering not found.</p>
-        <button className="btn-outline" onClick={() => navigate('/')}>
-          ← Back to board
-        </button>
       </div>
     );
   }
@@ -92,38 +91,51 @@ export function Detail() {
 
   return (
     <div className="wrap">
-      {/* Anonymous guests don't have a board — Home.tsx only renders one
-          for signed-in sessions, so this is a no-op destination (Landing)
-          for them and shouldn't be offered at all. */}
-      {isPersistent && (
-        <button className="btn-outline" style={{ marginBottom: 20 }} onClick={() => navigate('/')}>
-          ← Back to board
-        </button>
-      )}
       <div className="detail-top">
         <div>
+          {/* Anonymous guests don't have a board — Home.tsx only renders
+              one for signed-in sessions, so this is a no-op destination
+              (Landing) for them and shouldn't be offered at all. Sits
+              above the hero card, matching Figma's own left-column
+              position (Frame 94: chevron-back + "Gathering"/"Split Bill"
+              directly above the hero card, not spanning the full page). */}
+          {isPersistent && (
+            <BackLink
+              label={isCancelled ? 'Closed' : isSplitBill ? 'Split bill' : 'Gathering'}
+              onClick={() => navigate(isCancelled ? '/closed' : '/')}
+            />
+          )}
           <div className="hero-flyer">
-            <div className="stripe" />
-            <div className="cat">
-              {isSplitBill ? 'Split bill' : c.label} <span className="vis-badge">{v.icon} {v.label}</span>
-              {isCancelled && <span className="vis-badge cancelled-badge">Cancelled</span>}
-            </div>
-            <div className="title">{gathering.title}</div>
-            <div className="meta">
-              {fmtDate(gathering.gathering_date)} · {gathering.gathering_time || '—'}
-              <br />
-              {gathering.location || 'TBD'}
-              <br />
-              {isSplitBill ? (
-                <>
-                  £{splitBillProgress(gathering).collected.toFixed(2)} of £{splitBillProgress(gathering).target.toFixed(2)}{' '}
-                  collected
-                </>
-              ) : (
-                <>
-                  {going.length}/{gathering.capacity} going
-                </>
-              )}
+            <div className="hero-flyer-body">
+              <div className="cat">
+                {isSplitBill ? 'Split bill' : c.label}
+                <span className="hero-vis-badge">
+                  <span className="hero-vis-dot" />
+                  {v.label}
+                </span>
+                {isCancelled && <span className="hero-cancelled-badge">Cancelled</span>}
+              </div>
+              <div className="title">{gathering.title}</div>
+              <div className="meta">
+                <div className="meta-row">
+                  {fmtDate(gathering.gathering_date)}
+                  <span className="board-dot" />
+                  {gathering.gathering_time || '—'}
+                </div>
+                <div className="meta-row">{gathering.location || 'TBD'}</div>
+                <div className="meta-row">
+                  {isSplitBill ? (
+                    <>
+                      £{splitBillProgress(gathering).collected.toFixed(2)} of £{splitBillProgress(gathering).target.toFixed(2)}{' '}
+                      collected
+                    </>
+                  ) : (
+                    <>
+                      {going.length}/{gathering.capacity} going
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
             {gathering.cover_image_url && (
               <div className="flyer-photo" style={{ backgroundImage: `url(${gathering.cover_image_url})` }} />
@@ -146,7 +158,9 @@ export function Detail() {
             )
           ) : (
             <>
-              {userId && <RsvpPanel gathering={gathering} userId={userId} myRsvp={myRsvp} onChange={load} />}
+              {userId && (
+                <RsvpPanel gathering={gathering} userId={userId} myRsvp={myRsvp} isOrganizer={isOrganizer} onChange={load} />
+              )}
 
               {isOrganizer && gathering.visibility === 'invited' && (
                 <InvitePanel gathering={gathering} onChange={load} onPreviewGuest={() => navigate(`/g/${id}?preview=guest`)} />

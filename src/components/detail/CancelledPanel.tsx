@@ -13,7 +13,7 @@ export function CancelledPanel({ gathering }: { gathering: GatheringWithRelation
 
   return (
     <div className="panel cancelled-panel">
-      <h2>{isSplitBill ? 'This bill was closed' : 'This gathering was cancelled'}</h2>
+      <h2 style={{ color: 'var(--accent)' }}>{isSplitBill ? 'This bill was closed' : 'This gathering was cancelled'}</h2>
       <p className="lede" style={{ margin: 0, maxWidth: 'none' }}>
         {isSplitBill ? (
           <>

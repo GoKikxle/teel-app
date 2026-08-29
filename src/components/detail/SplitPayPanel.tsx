@@ -19,7 +19,7 @@ export function SplitPayPanel({
   const toast = useToast();
   const going = activeRsvps(gathering);
   const paidCount = going.filter((r) => r.paid).length;
-  const pct = paidPct(gathering, going.length, paidCount);
+  const pct = paidPct(gathering, paidCount);
 
   const perPerson =
     gathering.split_method === 'custom'
@@ -74,12 +74,11 @@ export function SplitPayPanel({
         </h2>
         <PaidRing pct={pct} size={40} />
       </div>
-      <div className="split-row">
-        <span>
-          Total £{gathering.cost_total.toFixed(2)} · {splitLabel}
-        </span>
+      <div className="split-amount-row">
         <span className="split-amt">£{perPerson}</span>
+        <span className="split-pill">{splitLabel}</span>
       </div>
+      <p className="poll-hint" style={{ marginTop: 0 }}>Total £{gathering.cost_total.toFixed(2)}</p>
 
       {gathering.split_method === 'itemized' && gathering.cost_items.length > 0 && (
         <ul className="item-breakdown">
@@ -92,10 +91,20 @@ export function SplitPayPanel({
         </ul>
       )}
 
-      <p className="paylink-note">
-        Pays directly to the organizer's {payLabel(gathering.pay_method)}
-        {gathering.pay_handle ? ` · @${gathering.pay_handle}` : ''}. Komon just tracks who's confirmed.
-      </p>
+      <div className="pay-tag">
+        <p className="paylink-note">
+          Pays directly to the organizer's {payLabel(gathering.pay_method)}
+          {gathering.pay_handle ? (
+            <>
+              {' · '}
+              <span style={{ fontWeight: 600 }}>@{gathering.pay_handle}</span>
+            </>
+          ) : (
+            ''
+          )}
+          . Komon just tracks who's confirmed.
+        </p>
+      </div>
 
       {readOnly ? (
         <p className="step-hint">
@@ -128,13 +137,16 @@ export function SplitPayPanel({
         </div>
       )}
 
-      <div className="paid-list">
-        {going.map((r) => (
-          <div className="paid-item" key={r.id}>
-            <span>{r.name}</span>
-            <span className={`check${r.paid ? ' paid' : ''}`}>{r.paid ? '✓' : ''}</span>
-          </div>
-        ))}
+      <div className="paid-card">
+        <div className="paid-card-title">Paid gatherers</div>
+        <div className="paid-list">
+          {going.map((r) => (
+            <div className="paid-item" key={r.id}>
+              <span className={`check${r.paid ? ' paid' : ''}`}>{r.paid ? '✓' : ''}</span>
+              <span>{r.name}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {!readOnly && (

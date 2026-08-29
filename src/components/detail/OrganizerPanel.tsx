@@ -76,17 +76,24 @@ export function OrganizerPanel({ gathering, onChange }: { gathering: GatheringWi
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {/* space-between per the redesign: Edit/Cancel sit at opposite ends
+          of the card rather than tightly grouped together. Delete is
+          intentionally not offered here at all — it only becomes an
+          option (replacing Cancel) once the gathering/bill is already
+          cancelled, below. */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
         {/* Split Bills are never editable, full stop — there's no Edit
-            screen for them to begin with, unlike the full flow. */}
-        {!isSplitBill && (
+            screen for them to begin with, unlike the full flow. Once
+            cancelled, editing stops making sense either way — only
+            Delete remains an option below. */}
+        {!isSplitBill && !isCancelled && (
           <button className="btn-outline" onClick={() => navigate(`/g/${gathering.id}/edit`)}>
             Edit gathering
           </button>
         )}
 
-        {!isCancelled &&
-          (!confirmingCancel ? (
+        {!isCancelled ? (
+          !confirmingCancel ? (
             <button className="btn-outline" onClick={() => setConfirmingCancel(true)}>
               {cancelLabel}
             </button>
@@ -99,15 +106,12 @@ export function OrganizerPanel({ gathering, onChange }: { gathering: GatheringWi
                 Back
               </button>
             </>
-          ))}
-
-        {!confirmingDelete ? (
-          <button
-            className="btn-outline"
-            style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-            onClick={() => setConfirmingDelete(true)}
-            disabled={Boolean(deleteBlockReason)}
-          >
+          )
+        ) : !confirmingDelete ? (
+          // Figma (node 1129:4828, "Host tools" in the Cancelled Gathering
+          // frame) shows "Delete gathering" as the same plain neutral pill
+          // as Edit/Cancel — no red/danger styling on this first button.
+          <button className="btn-outline" onClick={() => setConfirmingDelete(true)} disabled={Boolean(deleteBlockReason)}>
             {isSplitBill ? 'Delete bill' : 'Delete gathering'}
           </button>
         ) : (
@@ -133,10 +137,6 @@ export function OrganizerPanel({ gathering, onChange }: { gathering: GatheringWi
             ? "Guests will see this bill marked as closed and won't be able to pay. Anyone who already paid keeps that history. This can't be undone from here."
             : "Guests will see this gathering marked as cancelled and won't be able to RSVP, vote or pay. Anyone who already RSVPed or paid keeps that history. This can't be undone from here."}
         </p>
-      )}
-
-      {deleteBlockReason && (
-        <p style={{ marginTop: 10, marginBottom: 0, fontSize: 13, color: 'var(--danger)' }}>{deleteBlockReason}</p>
       )}
 
       {confirmingDelete && (

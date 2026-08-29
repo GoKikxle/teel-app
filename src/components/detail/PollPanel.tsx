@@ -34,7 +34,7 @@ export function PollPanel({
   return (
     <div className="panel">
       <h2>{gathering.poll_question}</h2>
-      <p className="poll-hint">{voted ? "You've voted — tap again to see results" : 'Tap an option to vote'}</p>
+      <p className="poll-hint">{voted ? "You've voted, tap again to see results." : 'Tap an option to vote'}</p>
       <div>
         {options.map((o) => {
           const isChosen = votedOption?.id === o.id;
@@ -46,14 +46,13 @@ export function PollPanel({
               aria-disabled={voted}
               onClick={() => vote(o.id)}
             >
-              <div className="poll-label">
-                <span>
-                  {o.label} {isChosen && <span className="poll-check">✓</span>}
-                </span>
-                <span>{o.poll_votes.length}</span>
-              </div>
-              <div className="poll-track">
-                <div className="poll-fill" style={{ width: `${pct.toFixed(0)}%` }} />
+              <div className="poll-label">{o.label}</div>
+              <div className="poll-row">
+                <span className="poll-radio" />
+                <div className="poll-track">
+                  <div className="poll-fill" style={{ width: `${pct.toFixed(0)}%` }} />
+                </div>
+                <span className="poll-count">{o.poll_votes.length}</span>
               </div>
             </button>
           );
