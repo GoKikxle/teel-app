@@ -86,7 +86,7 @@ export function SplitBillPayPanel({
       <>
         <div className="panel payment-confirmed-panel">
           <div className="payment-confirmed-graphic">
-            <img src="/icons/payment/confirmed-check.svg" alt="" className="payment-confirmed-check" />
+            <img src="/icons/shared/checkbox-active.svg" alt="" className="payment-confirmed-check" />
             <img src="/icons/payment/confirmed-sparkle-1.svg" alt="" className="payment-confirmed-sparkle-1" />
             <img src="/icons/payment/confirmed-sparkle-2.svg" alt="" className="payment-confirmed-sparkle-2" />
           </div>

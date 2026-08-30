@@ -4,6 +4,12 @@ import { fetchGathering } from '../data/gatherings';
 import type { GatheringWithRelations } from '../lib/database.types';
 import { SharePanel } from '../components/detail/SharePanel';
 
+// Figma 1165:3486 "Success creation" — own scoped classes (.success-*)
+// rather than the shared .gate-wrap h1/.lede InviteGate.tsx also uses:
+// this frame's heading is 32px/500-weight vs. the global h1's 34px/800,
+// and its buttons are pill-radius/14px-medium vs. .primary-btn/.btn-
+// outline's 16px-radius/700-weight — different enough to fight the
+// cascade rather than share it.
 export function Created() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -18,26 +24,17 @@ export function Created() {
 
   return (
     <div className="wrap">
-      <div className="gate-wrap">
-        <div className="success-check">✓</div>
-        <h1>{isSplitBill ? 'Split bill created' : 'Gathering created'}</h1>
-        <p className="lede" style={{ margin: '0 auto 22px' }}>
+      <div className="success-block">
+        <img src="/icons/shared/checkbox-active.svg" alt="" width={52} height={52} className="success-check" />
+        <h1 className="success-title">{isSplitBill ? 'Split bill created' : 'Gathering created'}</h1>
+        <p className="success-lede">
           {gathering ? `${gathering.title} is live.` : 'Your gathering is live.'}{' '}
-          {isSplitBill ? 'Share the link or QR code below and watch payments come in.' : 'Share the link and watch RSVPs, splits and votes come in.'}
+          {isSplitBill ? 'Share the link or QR code below and watch payments come in' : 'Share the link and watch RSVPs, splits and votes come in'}
         </p>
-        <button
-          className="primary-btn"
-          style={{ width: 'auto', padding: '12px 26px', marginBottom: 12 }}
-          onClick={() => navigate(`/g/${id}`)}
-        >
-          View gathering
+        <button className="success-primary-btn" onClick={() => navigate(`/g/${id}`)}>
+          {isSplitBill ? 'View bill' : 'View gathering'}
         </button>
-        <br />
-        {/* Not converted to BackLink deliberately — this is a secondary
-            action next to "View gathering" inside a centered success
-            card, not a page-level "go back" nav affordance, so the small
-            eyebrow-link pattern doesn't fit the same role here. */}
-        <button className="btn-outline" onClick={() => navigate('/')}>
+        <button className="success-secondary-btn" onClick={() => navigate('/')}>
           Back to board
         </button>
       </div>

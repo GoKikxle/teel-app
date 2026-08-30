@@ -142,7 +142,9 @@ export function SplitPayPanel({
         <div className="paid-list">
           {going.map((r) => (
             <div className="paid-item" key={r.id}>
-              <span className={`check${r.paid ? ' paid' : ''}`}>{r.paid ? '✓' : ''}</span>
+              <span className={`check${r.paid ? ' paid' : ''}`}>
+                {r.paid && <img src="/icons/shared/checkbox-active.svg" alt="" width={24} height={24} />}
+              </span>
               <span>{r.name}</span>
             </div>
           ))}

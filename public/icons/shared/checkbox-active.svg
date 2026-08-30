@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Checkbox/Active/Default">
+<g id="Plate">
+<rect width="52" height="52" rx="26" fill="#FF2D55" fill-opacity="0.1"/>
+<rect x="0.5" y="0.5" width="51" height="51" rx="25.5" stroke="#FF2D55" stroke-opacity="0.1"/>
+</g>
+<path id="check" d="M38.7549 15.8496C39.0861 15.85 39.2684 16.2352 39.0654 16.4912L39.0645 16.4902L24.1035 35.7148H24.1025C23.6475 36.2942 22.7776 36.2954 22.3252 35.7148L13.9346 24.9355C13.7348 24.6786 13.9115 24.2933 14.2451 24.293H16.3877C16.5586 24.2933 16.7273 24.3325 16.8809 24.4082C17.0344 24.4839 17.169 24.5938 17.2744 24.7295L23.2129 32.3584L35.7246 16.2871C35.9369 16.011 36.2666 15.8496 36.6133 15.8496H38.7549Z" fill="#FF2D55" stroke="#FF2D55" stroke-width="0.3"/>
+</g>
+</svg>

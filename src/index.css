@@ -160,7 +160,7 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
   line-height: 22px;
   color: #030302;
   background: none;
-  border: 1px solid #b7bcc4;
+  border: 1px solid #111;
   border-radius: 100px;
   padding: 10px 16px;
   cursor: pointer;
@@ -197,7 +197,7 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 }
 .account-dropdown-email span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-dropdown-logout {
-  background: #fff; border: 1px solid #f0f0f0; border-radius: 10px;
+  background: #fff; border: 1px solid #ede9e2; border-radius: 10px;
   padding: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
   font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
   cursor: pointer; width: 100%;
@@ -587,7 +587,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    ring), relying on .hero-cancelled-badge's pink pill (on the hero
    card above) to signal the cancelled state instead. */
 
-.success-check { width: 64px; height: 64px; border-radius: 50%; background: var(--success); color: #fff; font-size: 30px; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; animation: riseIn .45s var(--ease) backwards, popIn .5s var(--ease); }
+/* Figma 1165:3486 "Success creation" — Created.tsx's post-create screen. */
+.success-block { max-width: 420px; margin: 60px auto; text-align: center; animation: riseIn .4s var(--ease) backwards; }
+.success-check { display: block; margin: 0 auto 20px; animation: riseIn .45s var(--ease) backwards, popIn .5s var(--ease); }
+.success-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 32px; line-height: 24px; letter-spacing: -.16px; color: #000; margin: 0 0 20px; }
+.success-lede { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 16px; line-height: 28px; letter-spacing: -.08px; color: #595959; margin: 0 0 22px; }
+.success-primary-btn { background: #111; color: #fff; border: none; border-radius: 100px; padding: 10px 16px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; margin-bottom: 12px; }
+.success-primary-btn:hover { background: var(--ink-hover); }
+.success-secondary-btn { background: none; color: #030302; border: 1px solid #111; border-radius: 100px; padding: 10px 16px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; }
+.success-secondary-btn:hover { background: #f5f5f5; }
 
 .ticket-card { max-width: 420px; margin: 20px auto; background: var(--card); border-radius: var(--radius); padding: 28px 24px; text-align: center; box-shadow: var(--elevation-2); animation: riseIn .4s var(--ease) backwards; }
 .barcode { height: 46px; margin: 18px 0 10px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 10px, var(--ink) 10px 13px, transparent 13px 16px, var(--ink) 16px 17px, transparent 17px 21px); }
@@ -613,7 +621,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    never covered. */
 .panel .btn-outline {
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500;
-  border: 1px solid #f0f0f0; color: #1d2129; border-radius: 100px; padding: 10px 16px;
+  border: 1px solid #ede9e2; color: #1d2129; border-radius: 100px; padding: 10px 16px;
 }
 .panel .btn-outline:hover { background: #1d2129; color: #fff; }
 
@@ -647,14 +655,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .paid-card-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
 .paid-list { display: flex; flex-direction: column; gap: 12px; }
 .paid-item { display: flex; align-items: center; gap: 15px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #595959; }
-/* Exact spec pulled from the actual Figma checkbox asset
-   (Checkbox/Active/Default): circular (not the 6px-radius square this
-   was using), a light #FF2D55-at-10%-opacity fill (not a solid accent
-   fill — the checkmark itself is the only full-strength accent
-   element), so it stays a light, non-intrusive marker rather than a
-   heavy solid dot. */
-.check { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-.check.paid { background: rgba(255, 45, 85, .1); border-color: rgba(255, 45, 85, .1); color: var(--accent); }
+/* Unpaid: plain circular outline. Paid: the real exported "Checkbox/
+   Active/Default" asset (/icons/shared/checkbox-active.svg) — it already
+   draws its own light #FF2D55-at-10%-opacity plate + checkmark, so the
+   outline above is turned off rather than doubling up with the asset's
+   own circle. Previously a CSS-faked circle + unicode "✓" character
+   approximating this same asset; swapped for the real one since a
+   font-rendered glyph reads as generic/inconsistent across platforms. */
+.check { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.check.paid { border: none; }
 
 /* Figma 1157:1677 "Bill payment - Guest" — Split Bill's simulated Pay
    flow: a 50/50 accent "Pay" pill + a black wallet-brand pill, a
@@ -713,12 +722,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    Control") — label moves above a thin radio+track+count row, replacing
    the old thick thick bar-with-label-on-top; the filled radio circle
    itself signals "your choice" instead of a separate checkmark. */
-.poll-opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 16px; border: 1px solid #f0f0f0; border-radius: 12px; background: var(--card); cursor: pointer; font-family: inherit; color: var(--ink); transition: border-color .15s; }
+.poll-opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 16px; border: 1px solid #ede9e2; border-radius: 12px; background: var(--card); cursor: pointer; font-family: inherit; color: var(--ink); transition: border-color .15s; }
 .poll-opt:hover { border-color: var(--ink); }
 .poll-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .poll-opt.chosen { border-color: var(--accent); }
 .poll-opt.disabled { cursor: default; }
-.poll-opt.disabled:hover { border-color: #f0f0f0; }
+.poll-opt.disabled:hover { border-color: #ede9e2; }
 .poll-opt.disabled.chosen:hover { border-color: var(--accent); }
 .poll-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #111; margin-bottom: 8px; }
 .poll-row { display: flex; align-items: center; gap: 10px; }
@@ -932,7 +941,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 .waitlist-modal-field input {
   font-family: 'Inter', sans-serif; font-size: 14px; line-height: 22px; color: #0f1010;
-  background: #fff; border: 1px solid #dde1e9; border-radius: var(--radius-input); padding: 8px 12px; width: 100%;
+  background: #fff; border: 1px solid #ede9e2; border-radius: var(--radius-input); padding: 8px 12px; width: 100%;
 }
 .waitlist-modal-field input::placeholder { color: #c1c8d7; }
 .waitlist-modal-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
@@ -1035,11 +1044,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-tab.active { background: #000; color: #fff; border-color: transparent; }
 
 .board-search-bar {
-  backdrop-filter: blur(10px); background: rgba(255, 255, 255, .8); border: 1px solid #f0f0f0;
+  backdrop-filter: blur(10px); background: rgba(255, 255, 255, .8); border: 1px solid #ede9e2;
   border-radius: 8px; padding: 8px; display: flex; align-items: center; gap: 24px;
 }
 .board-filter-btn {
-  border: 1px solid #f0f0f0; border-radius: 8px; padding: 8px; background: none; cursor: pointer;
+  border: 1px solid #ede9e2; border-radius: 8px; padding: 8px; background: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
 .board-search-box { border: 1px solid #f5f5f5; border-radius: 8px; display: flex; align-items: center; width: 220px; overflow: hidden; }
