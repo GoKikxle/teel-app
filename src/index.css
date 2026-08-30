@@ -622,6 +622,41 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .check { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 .check.paid { background: rgba(255, 45, 85, .1); border-color: rgba(255, 45, 85, .1); color: var(--accent); }
 
+/* Figma 1157:1677 "Bill payment - Guest" — Split Bill's simulated Pay
+   flow: a 50/50 accent "Pay" pill + a black wallet-brand pill, a
+   transient processing overlay, and a redesigned confirmed screen.
+   Scoped with its own class names rather than reusing .pay-steps/
+   .paylink-note above — SplitPayPanel.tsx's manual "Send" / "I've sent
+   it" two-step flow for regular cost-split gatherings is untouched by
+   this change, so its shared classes stay exactly as they were. */
+.pay-buttons { display: flex; gap: 10px; }
+.pay-btn { flex: 1; border: none; border-radius: 100px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity .18s var(--ease), transform .12s var(--ease); }
+.pay-btn:active { transform: scale(.97); }
+.pay-btn:disabled { opacity: .5; cursor: not-allowed; }
+.pay-btn-accent { background: var(--accent); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 16px; padding: 15px 16px; }
+.pay-btn-wallet { background: #111; padding: 16px; }
+.pay-btn-wallet img { height: 20px; width: auto; }
+
+.payment-processing-card {
+  background: var(--card); border: 1px solid #f0f0f0; border-radius: 12px;
+  padding: 40px 16px; max-width: 441px; width: 100%; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;
+  animation: riseIn .3s var(--ease) backwards;
+}
+.payment-processing-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 20px; line-height: 28px; letter-spacing: -.1px; color: #030302; margin: 0; }
+.payment-processing-sub { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 24px; letter-spacing: -.07px; color: #595959; margin: 4px 0 0; }
+
+.payment-confirmed-panel { text-align: center; }
+.payment-confirmed-graphic { position: relative; width: 168px; height: 154px; margin: 0 auto 4px; }
+.payment-confirmed-check { position: absolute; left: 24px; top: 17px; width: 120px; height: 120px; }
+.payment-confirmed-sparkle-1 { position: absolute; left: 129px; top: 0; width: 38px; height: 40px; }
+.payment-confirmed-sparkle-2 { position: absolute; left: 0; top: 114px; width: 46px; height: 40px; }
+
+.split-cta-copy { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 20px; line-height: 24px; letter-spacing: -.1px; color: #111; margin: 0 0 20px; }
+.split-cta-copy .accent { font-style: italic; color: var(--accent); }
+.split-cta-btn { width: 100%; background: #111; color: #fff; border: none; border-radius: 100px; padding: 13px 16px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 16px; cursor: pointer; }
+.split-cta-btn:hover { background: var(--ink-hover); }
+
 /* Closed list page (Figma 1129:4639) — whole page content sits inside
    one bordered card (unlike every other page here, which uses plain
    .wrap), with a uniform 24px rhythm between every section AND as the
