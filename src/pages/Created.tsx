@@ -31,12 +31,14 @@ export function Created() {
           {gathering ? `${gathering.title} is live.` : 'Your gathering is live.'}{' '}
           {isSplitBill ? 'Share the link or QR code below and watch payments come in' : 'Share the link and watch RSVPs, splits and votes come in'}
         </p>
-        <button className="success-primary-btn" onClick={() => navigate(`/g/${id}`)}>
-          {isSplitBill ? 'View bill' : 'View gathering'}
-        </button>
-        <button className="success-secondary-btn" onClick={() => navigate('/')}>
-          Back to board
-        </button>
+        <div className="success-actions">
+          <button className="success-primary-btn" onClick={() => navigate(`/g/${id}`)}>
+            {isSplitBill ? 'View bill' : 'View gathering'}
+          </button>
+          <button className="success-secondary-btn" onClick={() => navigate('/')}>
+            Back to board
+          </button>
+        </div>
       </div>
 
       {isSplitBill && gathering && (
