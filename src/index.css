@@ -50,7 +50,7 @@
   --elevation-2: 0 4px 10px rgba(26, 26, 26, .09), 0 2px 4px rgba(26, 26, 26, .06);
   --elevation-3: 0 16px 32px rgba(26, 26, 26, .14), 0 4px 10px rgba(26, 26, 26, .08);
 
-  font-family: 'Urbanist', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -154,7 +154,7 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
    parallel class family. Default is the outline style ("Board" / "+ New
    gathering" in Figma); .accent is the filled pink "+Split bill" variant. */
 .navbtn {
-  font-family: 'Urbanist', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 22px;
@@ -312,10 +312,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    shadow-to-border flattening as .panel, own bordered card rather than a
    plain shadowed row. */
 .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #f0f0f0; border-radius: 12px; background: var(--card); margin-bottom: 10px; }
-.toggle-row .tlabel { font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
+.toggle-row .tlabel { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
 /* gap-[4px] per Figma's own "Payment reminder" text block (pulled
    earlier this session) — was 2px, half the spec value, reading cramped. */
-.toggle-row .tsub { font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 400; color: #595959; margin-top: 4px; }
+.toggle-row .tsub { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 400; color: #595959; margin-top: 4px; }
 /* Figma's Switch / Basic — 28x16 track, 12px handle, replaces the
    previous 38x22/18px sizing app-wide. */
 .switch { position: relative; width: 28px; height: 16px; background: var(--line); border-radius: 16px; border: none; cursor: pointer; flex-shrink: 0; transition: background .2s var(--ease); }
@@ -438,7 +438,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #595959; text-transform: uppercase;
 }
 .create-preview-title {
-  font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px;
   letter-spacing: -.16px; color: #030302; word-break: break-word;
 }
 .create-preview-meta { display: flex; flex-direction: column; gap: 8px; }
@@ -464,11 +464,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .hero-flyer-body { display: flex; flex-direction: column; gap: 16px; }
 .hero-flyer .cat {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 16px; line-height: 24px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 16px; line-height: 24px;
   letter-spacing: -.08px; color: #595959; text-transform: uppercase; margin: 0;
 }
 .hero-flyer .title {
-  font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px;
   letter-spacing: -.16px; color: #030302; margin: 0;
 }
 .hero-flyer .meta {
@@ -483,7 +483,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .hero-vis-badge {
   display: inline-flex; align-items: center; gap: 4px;
   background: #fcfaf5; border-radius: 100px; padding: 4px 12px 4px 8px;
-  font-family: 'Urbanist', sans-serif; font-weight: 400; font-size: 12px; line-height: 16px; color: #4f483b;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 400; font-size: 12px; line-height: 16px; color: #4f483b;
 }
 .hero-vis-dot { width: 4px; height: 4px; border-radius: 50%; background: #4f483b; flex-shrink: 0; }
 /* Pink per explicit ask this round — note Figma's own "Cancelled
@@ -496,7 +496,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .hero-cancelled-badge {
   display: inline-flex; align-items: center;
   background: rgba(255, 45, 85, .1); border-radius: 100px; padding: 4px 12px;
-  font-family: 'Urbanist', sans-serif; font-weight: 400; font-size: 12px; line-height: 16px; color: var(--accent);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 400; font-size: 12px; line-height: 16px; color: var(--accent);
 }
 
 /* Figma 1129:4411 — every detail-view panel (Host tools/Who's in/poll/
@@ -514,8 +514,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .rsvp-rows { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
 .rsvp-row { display: flex; align-items: center; gap: 15px; }
 .rsvp-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; flex-shrink: 0; }
-.rsvp-name { font-family: 'Urbanist', sans-serif; font-size: 14px; color: #595959; letter-spacing: -.07px; }
-.rsvp-contact { background: #fcfaf5; border-radius: 100px; padding: 4px 16px; font-family: 'Urbanist', sans-serif; font-size: 14px; color: #6b6b6b; }
+.rsvp-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #595959; letter-spacing: -.07px; }
+.rsvp-contact { background: #fcfaf5; border-radius: 100px; padding: 4px 16px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #6b6b6b; }
 .avatar-stack { display: flex; align-items: center; margin-bottom: 8px; }
 .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; border: 2px solid var(--card); margin-left: -10px; flex-shrink: 0; }
 .avatar:first-child { margin-left: 0; }
@@ -545,7 +545,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   background: var(--danger); color: #fff; padding: 4px 9px; border-radius: 12px;
 }
 .vis-badge.cancelled-badge {
-  background: #ede5d3; color: #8e6a1a; font-family: 'Urbanist', sans-serif; font-weight: 400;
+  background: #ede5d3; color: #8e6a1a; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 400;
   font-size: 12px; line-height: 16px; letter-spacing: normal; border-radius: 100px; padding: 4px 12px;
 }
 /* Red-stroke box removed per this round's ask — .cancelled-panel now
@@ -578,7 +578,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    reading of the spec, just an extension of it into contexts Figma
    never covered. */
 .panel .btn-outline {
-  font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 500;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500;
   border: 1px solid #f0f0f0; color: #1d2129; border-radius: 100px; padding: 10px 16px;
 }
 .panel .btn-outline:hover { background: #1d2129; color: #fff; }
@@ -593,12 +593,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    uses --accent consistently, same resolution as BoardBillCard.tsx's
    own amount color. */
 .split-amount-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.split-amt { font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 32px; letter-spacing: -.16px; color: var(--accent); }
-.split-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--accent); color: #fff; font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 12px; text-transform: uppercase; border-radius: 100px; padding: 4px 12px 4px 8px; }
+.split-amt { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 32px; letter-spacing: -.16px; color: var(--accent); }
+.split-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--accent); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 12px; text-transform: uppercase; border-radius: 100px; padding: 4px 12px 4px 8px; }
 .split-pill::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: #fff; flex-shrink: 0; }
 /* "Tag / Status" cream info box wrapping the payment-method note. */
 .pay-tag { background: #fcfaf5; border-radius: 8px; padding: 16px; margin: 0 0 16px; }
-.paylink-note { font-family: 'Urbanist', sans-serif; font-size: 16px; line-height: 24px; letter-spacing: -.08px; color: #1d2129; margin: 0; }
+.paylink-note { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 24px; letter-spacing: -.08px; color: #1d2129; margin: 0; }
 .pay-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 6px; }
 .pay-step { display: flex; gap: 12px; align-items: flex-start; opacity: .5; }
 .pay-step.complete { opacity: 1; }
@@ -610,9 +610,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    flat border treatment) rather than a plain divided list; checkbox
    moves to the left of the name instead of a trailing checkmark. */
 .paid-card { border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px; margin: 14px 0; display: flex; flex-direction: column; gap: 12px; }
-.paid-card-title { font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
+.paid-card-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 500; color: #111; }
 .paid-list { display: flex; flex-direction: column; gap: 12px; }
-.paid-item { display: flex; align-items: center; gap: 15px; font-family: 'Urbanist', sans-serif; font-size: 14px; color: #595959; }
+.paid-item { display: flex; align-items: center; gap: 15px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #595959; }
 /* Exact spec pulled from the actual Figma checkbox asset
    (Checkbox/Active/Default): circular (not the 6px-radius square this
    was using), a light #FF2D55-at-10%-opacity fill (not a solid accent
@@ -632,14 +632,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    nav the way .create-eyebrow-row normally assumes. */
 .closed-panel { border: 1px solid #f0f0f0; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 24px; margin-top: 40px; }
 .closed-panel .create-eyebrow-row { padding-top: 0; margin-bottom: 0; }
-.closed-panel h1 { font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: #030302; margin: 0; }
-.closed-panel .lede { font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 400; color: #111; line-height: 24px; margin: 0; max-width: none; }
+.closed-panel h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: #030302; margin: 0; }
+.closed-panel .lede { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 400; color: #111; line-height: 24px; margin: 0; max-width: none; }
 .closed-list { display: flex; flex-direction: column; }
 .closed-row { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; border-bottom: 1px solid #decfb8; text-decoration: none; color: inherit; }
-.closed-row-title { font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 16px; color: #111; }
-.closed-row-meta { display: flex; align-items: center; gap: 24px; font-family: 'Urbanist', sans-serif; font-weight: 400; font-size: 16px; color: #595959; }
+.closed-row-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 16px; color: #111; }
+.closed-row-meta { display: flex; align-items: center; gap: 24px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 400; font-size: 16px; color: #595959; }
 
-.poll-hint { font-family: 'Urbanist', sans-serif; font-size: 14px; color: #595959; margin: -6px 0 14px; }
+.poll-hint { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #595959; margin: -6px 0 14px; }
 /* Figma 1129:4411 poll option ("Input / Basic" + "Table / Item / Row
    Control") — label moves above a thin radio+track+count row, replacing
    the old thick thick bar-with-label-on-top; the filled radio circle
@@ -651,7 +651,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-opt.disabled { cursor: default; }
 .poll-opt.disabled:hover { border-color: #f0f0f0; }
 .poll-opt.disabled.chosen:hover { border-color: var(--accent); }
-.poll-label { font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 500; color: #111; margin-bottom: 8px; }
+.poll-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #111; margin-bottom: 8px; }
 .poll-row { display: flex; align-items: center; gap: 10px; }
 .poll-radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line); flex-shrink: 0; position: relative; }
 .poll-opt.chosen .poll-radio { border-color: var(--accent); }
@@ -760,7 +760,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .waitlist-topbar-cta:hover { background: var(--accent-strong); }
 
 .waitlist-headline {
-  font-family: 'Urbanist', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
   font-size: 64px;
   line-height: 68px;
@@ -806,7 +806,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   padding: 8px 14px;
   border-radius: 4px;
   box-shadow: 0 16px 36px -20px rgba(0, 0, 0, .19);
-  font-family: 'Urbanist', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -853,13 +853,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .waitlist-modal-form { display: flex; flex-direction: column; gap: 40px; width: 100%; }
 .waitlist-modal-fields { display: flex; flex-direction: column; gap: 24px; width: 100%; }
 .waitlist-modal-title {
-  font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 20px; line-height: 22px; color: #262728; margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 20px; line-height: 22px; color: #262728; margin: 0;
 }
 .waitlist-modal-row { display: flex; gap: 24px; }
 .waitlist-modal-row .waitlist-modal-field { flex: 1; }
 .waitlist-modal-field { display: flex; flex-direction: column; text-transform: none; }
 .waitlist-modal-field span {
-  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #0f1010; margin-bottom: 8px; letter-spacing: normal;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #0f1010; margin-bottom: 8px; letter-spacing: normal;
 }
 .waitlist-modal-field input {
   font-family: 'Inter', sans-serif; font-size: 14px; line-height: 22px; color: #0f1010;
@@ -868,13 +868,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .waitlist-modal-field input::placeholder { color: #c1c8d7; }
 .waitlist-modal-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
 .waitlist-modal-submit {
-  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #fff;
   background: #1d2129; border: none; border-radius: 100px; padding: 10px 16px; width: 100%; cursor: pointer;
 }
 .waitlist-modal-submit:hover { background: var(--ink-hover); }
 .waitlist-modal-submit:disabled { opacity: .6; cursor: not-allowed; }
 .waitlist-modal-cancel {
-  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #595959;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #595959;
   background: none; border: none; border-radius: 100px; padding: 10px 16px; width: 100%; cursor: pointer;
 }
 .waitlist-modal-cancel:hover { color: var(--ink); }
@@ -958,7 +958,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   border-radius: 8px; padding: 8px; display: flex; gap: 8px; align-items: center;
 }
 .board-tab {
-  font-family: 'Urbanist', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px;
   color: rgba(3, 3, 2, .6); background: none; border: 1px solid rgba(189, 193, 197, .25);
   border-radius: 100px; padding: 4px 8px; cursor: pointer; text-decoration: none;
   display: inline-flex; align-items: center;
@@ -975,7 +975,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 .board-search-box { border: 1px solid #f5f5f5; border-radius: 8px; display: flex; align-items: center; width: 220px; overflow: hidden; }
 .board-search-box input {
-  flex: 1; min-width: 0; border: none; padding: 5px 12px; font-family: 'Urbanist', sans-serif;
+  flex: 1; min-width: 0; border: none; padding: 5px 12px; font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px; line-height: 22px; color: #1d2129; background: none;
 }
 .board-search-box input::placeholder { color: #86909c; }
@@ -1001,7 +1001,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-mobile-tab-trigger {
   background: #fff; border: none; border-radius: 100px; padding: 9px 12px; cursor: pointer;
   display: flex; align-items: center; gap: 4px;
-  font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 600; color: #1d2129;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 600; color: #1d2129;
 }
 .board-mobile-tab-trigger.active { background: #ede9e2; }
 .board-mobile-search-btn {
@@ -1026,7 +1026,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 .board-mobile-overlay-item {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 16px;
-  font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 600; color: #1d2129;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 600; color: #1d2129;
   background: none; border: none; cursor: pointer; text-align: left; text-decoration: none;
 }
 /* Fixed-width slot so unchecked rows' text still lines up with the checked
@@ -1037,7 +1037,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-mobile-overlay-add { padding: 4px 16px; gap: 8px; }
 .board-mobile-overlay-pill {
   width: 100%; border: none; border-radius: 100px; padding: 10px 16px; cursor: pointer;
-  font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 600; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 600; color: #fff;
 }
 .board-mobile-overlay-pill.accent { background: var(--accent); }
 .board-mobile-overlay-pill.dark { background: #1d2129; border: 1px solid rgba(0, 0, 0, .19); }
@@ -1049,7 +1049,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   display: flex; align-items: center; padding-right: 16px;
 }
 .board-mobile-search-box input {
-  flex: 1; min-width: 0; border: none; padding: 8px 16px; font-family: 'Urbanist', sans-serif;
+  flex: 1; min-width: 0; border: none; padding: 8px 16px; font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px; color: #1d2129; background: none;
 }
 .board-mobile-search-box input::placeholder { color: #86909c; }
@@ -1062,7 +1062,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-date-group { position: relative; }
 .board-date-pill {
   background: #ede9e2; border-radius: 100px; padding: 8px 16px;
-  font-family: 'Urbanist', sans-serif; font-size: 16px; font-weight: 500; line-height: 20px; color: #6b6b6b;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 500; line-height: 20px; color: #6b6b6b;
   width: fit-content; margin: 0 auto 24px;
 }
 .board-timeline-row { position: relative; display: flex; gap: 48px; justify-content: center; }
@@ -1081,11 +1081,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-card-bill { align-items: flex-start; }
 .board-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
 .board-card-title {
-  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: #030302;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: #030302;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .board-card-amount {
-  font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: var(--accent);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: var(--accent);
 }
 .board-card-meta { display: flex; flex-direction: column; gap: 8px; }
 /* "All" tab cards are bolder and tighter than the single-kind-filtered
