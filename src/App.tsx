@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { Home } from './pages/Home';
+import { SignIn } from './pages/SignIn';
 import { Create } from './pages/Create';
 import { Created } from './pages/Created';
 import { Detail } from './pages/Detail';
@@ -14,6 +15,7 @@ function App() {
       <Nav />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/signin" element={<SignIn />} />
         <Route path="/create" element={<Create />} />
         <Route path="/split/create" element={<SplitBillCreate />} />
         <Route path="/created/:id" element={<Created />} />

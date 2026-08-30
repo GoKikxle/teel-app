@@ -16,7 +16,7 @@ function normalize(email: string): string {
 // way to check one email's status without exposing the whole list. Throws
 // on any failure (network, RPC error) rather than returning false, so a
 // failed check can never be silently mistaken for "not approved" by a
-// caller that isn't paying attention — see SignInModal.tsx, which fails
+// caller that isn't paying attention — see SignIn.tsx, which fails
 // closed on a thrown error rather than treating it as approved or denied.
 export async function checkWaitlistApproval(email: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('is_waitlist_approved', { check_email: normalize(email) });

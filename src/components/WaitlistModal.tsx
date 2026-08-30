@@ -6,11 +6,11 @@ import { useToast } from '../hooks/useToast';
 import { Logo } from './Logo';
 
 // The "Komon waitlist form" Figma frame — a dedicated signup modal distinct
-// from SignInModal.tsx (that one checks approval + sends a magic link; this
-// one only writes to the waitlist table via joinWaitlist, same as the old
-// inline email form it replaces). Kept as its own component/stylesheet
-// scope (.waitlist-modal-*) rather than reusing SignInModal's .modal-* — its
-// backdrop, card width, and field layout all differ from that shared modal.
+// from the /signin page (that one checks approval + sends a magic link;
+// this one only writes to the waitlist table via joinWaitlist, same as the
+// old inline email form it replaces). Kept as its own component/stylesheet
+// scope (.waitlist-modal-*) rather than reusing QRModal's shared .modal-* —
+// its backdrop, card width, and field layout all differ from that shared modal.
 export function WaitlistModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

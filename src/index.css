@@ -369,6 +369,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .gate-wrap { max-width: 420px; margin: 60px auto; text-align: center; animation: riseIn .4s var(--ease) backwards; }
 .gate-wrap .lock { font-size: 40px; margin-bottom: 6px; }
 .gate-wrap input { margin: 16px 0; text-align: center; }
+
+/* Figma 1157:3070 "Sign in" — standalone page (replaces the old
+   SignInModal.tsx dialog). Own scoped classes rather than the shared
+   .field/label/input[type=...] rules above — those are the older,
+   uppercase-label design system used by every other form in the app;
+   changing them to match this one spec would ripple into Create.tsx,
+   SplitBillCreate.tsx, RSVP forms, etc., none of which this task touched. */
+.signin-page { display: flex; justify-content: center; padding: 212px 24px 60px; }
+.signin-content { width: 100%; max-width: 400px; animation: riseIn .35s var(--ease) backwards; }
+.signin-heading { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 30px; line-height: 38px; letter-spacing: -.15px; color: #0f1010; margin: 0 0 24px; }
+.signin-lede { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 24px; color: #595959; margin: 0; }
+.signin-field { margin-bottom: 24px; }
+.signin-field label { display: block; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #0f1010; text-transform: none; letter-spacing: normal; margin-bottom: 8px; }
+.signin-field input {
+  width: 100%; padding: 8px 12px; border: 1px solid #ede9e2; border-radius: 8px; background: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 22px; color: #0f1010;
+  transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.signin-field input::placeholder { color: #d2cabc; }
+.signin-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 45, 85, .14); outline: none; }
+.signin-submit {
+  width: 100%; background: #1d2129; color: #fff; border: none; border-radius: 100px; padding: 10px 16px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; cursor: pointer;
+  transition: background .15s var(--ease);
+}
+.signin-submit:hover:not(:disabled) { background: var(--ink-hover); }
+.signin-submit:disabled { opacity: .6; cursor: not-allowed; }
+.signin-divider { height: 1px; background: #ede9e2; margin: 24px 0; }
+.signin-google {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
+  background: #fff; border: 1px solid #ede9e2; border-radius: 100px; padding: 10px 24px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #0f1010;
+  cursor: not-allowed; opacity: .6;
+}
 .invite-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .invite-row .ie { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .invite-status { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 3px 7px; border-radius: 10px; flex-shrink: 0; }
@@ -872,7 +906,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* Waitlist signup modal — pulled from the "Komon waitlist form" Figma frame
    (node 1028:1128). Kept separate from the shared .modal-* classes (see
-   SignInModal.tsx) since its backdrop tint and card width both differ. */
+   QRModal.tsx) since its backdrop tint and card width both differ. */
 .waitlist-modal-backdrop { position: fixed; inset: 0; background: rgba(189, 193, 197, .25); z-index: 200; animation: riseIn .2s var(--ease); }
 .waitlist-modal-viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 200; }
 .waitlist-modal-card {

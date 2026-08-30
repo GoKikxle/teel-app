@@ -3,7 +3,6 @@ import type { GatheringWithRelations, Rsvp } from '../../lib/database.types';
 import { markPaid, splitBillPerPerson, upsertSplitBillPayment } from '../../data/gatherings';
 import { useToast } from '../../hooks/useToast';
 import { useCreateGate } from '../../hooks/useCreateGate';
-import { SignInModal } from '../SignInModal';
 
 // Which wallet-brand button to show next to "Pay" — Apple Pay on iOS/
 // Safari, Google Pay everywhere else (Figma shows both as separate
@@ -105,11 +104,6 @@ export function SplitBillPayPanel({
             +Split bill
           </button>
         </div>
-        <SignInModal
-          open={splitBillGate.open}
-          onClose={splitBillGate.close}
-          message="Sign in to create and manage your split bill."
-        />
       </>
     );
   }

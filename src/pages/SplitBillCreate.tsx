@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { createSplitBill } from '../data/gatherings';
 import type { PayMethod } from '../lib/database.types';
-import { SignInModal } from '../components/SignInModal';
 import { BackLink } from '../components/BackLink';
 
 const TOTAL_STEPS = 4;
@@ -19,6 +18,14 @@ export function SplitBillCreate() {
   const { userId, ready, isPersistent } = useAuth();
   const toast = useToast();
 
+  // Same gating pattern as Create.tsx: the primary entry points (Board/
+  // Nav) won't navigate here until signed in, but this covers a direct
+  // URL visit — redirects straight to /signin rather than showing an
+  // in-between "Sign in to create" screen.
+  useEffect(() => {
+    if (ready && !isPersistent) navigate('/signin?next=/split/create', { replace: true });
+  }, [ready, isPersistent, navigate]);
+
   const [step, setStep] = useState(1);
   const [label, setLabel] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
@@ -29,7 +36,6 @@ export function SplitBillCreate() {
   const [payMethod, setPayMethod] = useState<PayMethod>('venmo');
   const [payHandle, setPayHandle] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showSignIn, setShowSignIn] = useState(false);
 
   const amountNumber = Number(totalAmount) || 0;
   const peopleNumber = Number(numberOfPeople) || 0;
@@ -77,37 +83,12 @@ export function SplitBillCreate() {
     }
   }
 
-  // Same gating pattern as Create.tsx: the primary entry points (Board/Nav)
-  // won't navigate here until signed in, but this covers a direct URL visit.
-  if (!ready) {
+  // Covers both "auth not resolved yet" and "resolved anonymous, the
+  // effect above is about to navigate away".
+  if (!ready || !isPersistent) {
     return (
       <div className="wrap">
         <p className="lede">Loading…</p>
-      </div>
-    );
-  }
-
-  if (!isPersistent) {
-    return (
-      <div className="wrap">
-        <div className="gate-wrap">
-          <h1>Sign in to create</h1>
-          <p className="lede" style={{ margin: '0 auto 22px' }}>
-            You'll need to sign in so this split bill can be managed from any device.
-          </p>
-          <button
-            className="primary-btn"
-            style={{ width: 'auto', padding: '12px 26px' }}
-            onClick={() => setShowSignIn(true)}
-          >
-            Sign in
-          </button>
-        </div>
-        <SignInModal
-          open={showSignIn}
-          onClose={() => setShowSignIn(false)}
-          message="Sign in to create and manage your split bill."
-        />
       </div>
     );
   }

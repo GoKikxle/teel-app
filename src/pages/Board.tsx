@@ -4,7 +4,6 @@ import { fetchBoardGatherings } from '../data/gatherings';
 import type { GatheringWithRelations } from '../lib/database.types';
 import { BoardGatheringCard } from '../components/BoardGatheringCard';
 import { BoardBillCard } from '../components/BoardBillCard';
-import { SignInModal } from '../components/SignInModal';
 import { useCreateGate } from '../hooks/useCreateGate';
 
 type TabKey = 'all' | 'split_bill' | 'event';
@@ -298,13 +297,6 @@ export function Board() {
           })}
         </div>
       )}
-
-      <SignInModal open={createGate.open} onClose={createGate.close} message="Sign in to create and manage your gathering." />
-      <SignInModal
-        open={splitBillGate.open}
-        onClose={splitBillGate.close}
-        message="Sign in to create and manage your split bill."
-      />
     </div>
   );
 }

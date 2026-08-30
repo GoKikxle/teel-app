@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Switch } from '@base-ui/react/switch';
 import { useAuth } from '../hooks/useAuth';
@@ -6,7 +6,6 @@ import { useToast } from '../hooks/useToast';
 import { CATS, fmtDate } from '../lib/constants';
 import { createGathering, uploadCoverImage } from '../data/gatherings';
 import type { Category, PayMethod, SplitMethod, Visibility } from '../lib/database.types';
-import { SignInModal } from '../components/SignInModal';
 import { BackLink } from '../components/BackLink';
 
 interface ItemRow {
@@ -20,6 +19,15 @@ export function Create() {
   const navigate = useNavigate();
   const { userId, ready, isPersistent } = useAuth();
   const toast = useToast();
+
+  // Primary entry is gated upstream (Board/Nav's "+ New gathering" won't
+  // navigate here until signed in), but this covers a direct URL visit —
+  // the form itself must never render for an anonymous session. Redirects
+  // straight to /signin rather than showing an in-between "Sign in to
+  // create" screen — no reason to make someone click twice.
+  useEffect(() => {
+    if (ready && !isPersistent) navigate('/signin?next=/create', { replace: true });
+  }, [ready, isPersistent, navigate]);
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -48,7 +56,6 @@ export function Create() {
   const [opt3, setOpt3] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
-  const [showSignIn, setShowSignIn] = useState(false);
 
   const itemTotal = useMemo(
     () => items.reduce((sum, it) => sum + (Number(it.amount) || 0), 0),
@@ -153,38 +160,14 @@ export function Create() {
     }
   }
 
-  // Primary entry is gated upstream (Board/Nav's "+ New gathering" won't
-  // navigate here until signed in), but this covers a direct URL visit —
-  // the form itself must never render for an anonymous session.
-  if (!ready) {
+  // Covers both "auth not resolved yet" and "resolved anonymous, the
+  // effect above is about to navigate away" — the form itself must never
+  // render for an anonymous session, and there's nothing worth showing
+  // in between besides a loading state.
+  if (!ready || !isPersistent) {
     return (
       <div className="wrap">
         <p className="lede">Loading…</p>
-      </div>
-    );
-  }
-
-  if (!isPersistent) {
-    return (
-      <div className="wrap">
-        <div className="gate-wrap">
-          <h1>Sign in to create</h1>
-          <p className="lede" style={{ margin: '0 auto 22px' }}>
-            You'll need to sign in so this gathering can be managed from any device.
-          </p>
-          <button
-            className="primary-btn"
-            style={{ width: 'auto', padding: '12px 26px' }}
-            onClick={() => setShowSignIn(true)}
-          >
-            Sign in
-          </button>
-        </div>
-        <SignInModal
-          open={showSignIn}
-          onClose={() => setShowSignIn(false)}
-          message="Sign in to create and manage your gathering."
-        />
       </div>
     );
   }
