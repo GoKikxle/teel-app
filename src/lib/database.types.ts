@@ -102,3 +102,68 @@ export interface GatheringWithRelations extends Gathering {
   poll_options: (PollOption & { poll_votes: { id: string; voter_user_id: string }[] })[];
   invited_emails: InvitedEmail[];
 }
+
+// --- Alias Polls ------------------------------------------------------
+// A second, unrelated poll concept: top-level (not nested under a
+// gathering), voted on under a made-up alias with no account. See
+// supabase/migrations/0010_alias_polls.sql — table names carry an
+// alias_poll_ prefix specifically so they don't collide with
+// PollOption/PollVote above, which are a different feature.
+
+export type ChartStyle = 'card' | 'columns';
+export type AliasPollStatus = 'open' | 'closed';
+
+export interface LinkMeta {
+  host: string;
+  name: string;
+  /** og:image URL from the server-side scrape (api/poll-link-preview.ts),
+   *  captured once at option-creation time and reused directly on every
+   *  render — never re-fetched per page view. Null when the scrape found
+   *  no og:image, in which case the UI falls back to a colored-initials
+   *  badge derived from host/name instead. */
+  imageUrl: string | null;
+}
+
+export interface AliasPoll {
+  id: string;
+  organizer_user_id: string;
+  title: string;
+  chart_style: ChartStyle;
+  suspense_mode: boolean;
+  comments_live: boolean;
+  allow_messages: boolean;
+  /** Persists the organizer's "Reveal to guests" action — once true, every
+   *  guest sees the full breakdown regardless of suspense_mode. */
+  revealed: boolean;
+  status: AliasPollStatus;
+  created_at: string;
+  closed_at: string | null;
+}
+
+export interface AliasPollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  position: number;
+  emoji: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  link_meta: LinkMeta | null;
+}
+
+// Guest-facing shape — matches the alias_poll_votes_public view exactly,
+// real_name structurally absent rather than just unrendered.
+export interface AliasPollVotePublic {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  alias: string;
+  alias_avatar: string;
+  message: string | null;
+  created_at: string;
+}
+
+// Organizer-only shape — matches get_alias_poll_votes()'s return rows.
+export interface AliasPollVote extends AliasPollVotePublic {
+  real_name: string;
+}
