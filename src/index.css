@@ -1170,7 +1170,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-card-bill { align-items: flex-start; }
 .board-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
 .board-card-title {
-  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 32px; line-height: 28px; letter-spacing: -.16px; color: #030302;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 32px; line-height: 40px; letter-spacing: -.16px; color: #030302;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .board-card-amount {
