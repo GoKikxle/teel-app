@@ -1558,6 +1558,12 @@ input.poll-opt-link-input {
    title/toggle collision to guard against with flex-wrap. */
 .poll-org-actions { display: flex; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #ede9e2; }
 
+/* Sits directly under <PollWinnerHero> on both closed-poll views — no
+   divider, unlike .poll-org-actions above, since it's part of the same
+   "here's your result" moment rather than a separate settled-in section. */
+.poll-keepsake-share { display: flex; gap: 10px; margin: 16px 0 4px; flex-wrap: wrap; }
+.poll-keepsake-share a.btn-outline { text-decoration: none; }
+
 /* Figma's own two-column frame (nodes 1182:4780 live / 1182:4685 closed)
    measures noticeably wider than this grid's old 1fr/340px/36px guess: right
    column is a constant 517px on both screens (Organizer controls/Message

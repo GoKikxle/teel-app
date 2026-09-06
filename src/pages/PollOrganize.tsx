@@ -13,7 +13,9 @@ import {
   formatCloseCountdown,
   formatDuration,
   pickBestMessages,
+  pickWinners,
   revealPoll,
+  tallyOptions,
 } from '../data/polls';
 import type { AliasPoll, AliasPollOption, AliasPollVote } from '../lib/database.types';
 import { PollTally } from '../components/polls/PollTally';
@@ -22,6 +24,7 @@ import { PollStatusPill } from '../components/polls/PollStatusPill';
 import { PollVoterRow } from '../components/polls/PollVoterRow';
 import { PollSharePanel } from '../components/polls/PollSharePanel';
 import { PollWinnerHero } from '../components/polls/PollWinnerHero';
+import { PollKeepsakeShare } from '../components/polls/PollKeepsakeShare';
 
 // Figma-less feature (built from the reviewed prototype) — Alias Polls'
 // organizer screen. Ownership-gated the same way Edit.tsx gates gathering
@@ -237,6 +240,10 @@ function PollWrapUp({
   const duration = poll.closed_at ? formatDuration(poll.created_at, poll.closed_at) : '—';
   const best = pickBestMessages(votes, 3);
   const voteCount = votes.length;
+  // PollWinnerHero computes the same thing internally to render its own
+  // card — this is the cheap gate check the keepsake share control needs,
+  // not a duplication of its rendering logic.
+  const isSingleWinner = pickWinners(tallyOptions(options, votes)).length === 1;
 
   return (
     <div className="wrap poll-organize-wrap">
@@ -253,6 +260,7 @@ function PollWrapUp({
         <p className="lede">Here's the keepsake — the same summary you could share once everyone's had their say.</p>
 
         <PollWinnerHero options={options} votes={votes} />
+        <PollKeepsakeShare pollId={pollId} isSingleWinner={isSingleWinner} />
 
         {/* Voter avatar row capped at 4 here (Figma), vs. the live view's
             default 5 — see PollVoterRow's max prop. */}

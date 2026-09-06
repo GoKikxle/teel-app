@@ -1,7 +1,15 @@
-// Vercel Edge Middleware — serves crawler-only requests to /g/:id a tiny
-// static HTML document with real per-gathering og:/twitter: meta tags.
-// Real browsers get nothing back here (the function returns undefined) and
-// fall through to the normal Vite SPA, unchanged.
+// Vercel Edge Middleware — serves crawler-only requests to /g/:id and
+// /p/:id a tiny static HTML document with real per-item og:/twitter: meta
+// tags. Real browsers get nothing back here (the function returns
+// undefined) and fall through to the normal Vite SPA, unchanged.
+//
+// The /p/:id (Alias Polls) branch was added alongside the original /g/:id
+// (gatherings) one below — additive only, the gathering branch's own logic
+// is untouched. A closed poll with exactly one winner gets a real
+// per-poll og:image (api/poll-keepsake.tsx, cached aggressively since a
+// closed poll's result never changes); every other poll state (open,
+// tied, zero votes, not found) falls back to the same static branded
+// image gatherings use, with the same short cache.
 //
 // Why this exists at all: link-preview crawlers (WhatsApp, iMessage,
 // Slack, Discord, ...) don't execute JavaScript — they read whatever HTML
@@ -43,7 +51,7 @@
 // (72px icon, 255x48 lettermark, 12px gap, centered), capture it, and
 // save over public/og/default.png at exactly 1200x630.
 export const config = {
-  matcher: ['/g/:id'],
+  matcher: ['/g/:id', '/p/:id'],
 };
 
 // Edge Runtime only actually exposes process.env (for the project's
@@ -117,9 +125,16 @@ function metaResponse(params: {
   // fetching and decoding the image ourselves, and declaring 1200x630
   // for a photo that's actually e.g. 1400x1400 is just false metadata —
   // omit the tags entirely rather than assert a size we haven't verified.
+  // api/poll-keepsake.tsx is the other case that's always exactly
+  // 1200x630 by construction, same reasoning.
   imageDimensions?: { width: number; height: number };
+  // Defaults to the short WhatsApp/iMessage-refetch cache every gathering
+  // response already used — every existing call site keeps that exact
+  // behavior unchanged. Only the poll branch's single-winner closed-poll
+  // case overrides this, since that result never changes once closed.
+  cacheControl?: string;
 }): Response {
-  const { origin, path, title, description, image, imageDimensions } = params;
+  const { origin, path, title, description, image, imageDimensions, cacheControl = 'public, max-age=300, s-maxage=600, stale-while-revalidate=86400' } = params;
   const pageUrl = `${origin}${path}`;
   const dimensionTags = imageDimensions
     ? `\n<meta property="og:image:width" content="${imageDimensions.width}" />\n<meta property="og:image:height" content="${imageDimensions.height}" />`
@@ -150,10 +165,137 @@ function metaResponse(params: {
     status: 200,
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      // Short edge cache: WhatsApp/iMessage re-fetch on every share, this
-      // keeps that from hitting Supabase on every single unfurl.
-      'cache-control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=86400',
+      'cache-control': cacheControl,
     },
+  });
+}
+
+// --- Alias Polls (/p/:id) --------------------------------------------
+// Separate fetch helpers/interfaces from the gathering ones above rather
+// than a shared generic REST helper — keeps this branch trivially
+// readable and free of any coupling that could risk changing gathering
+// behavior while touching poll code.
+
+interface AliasPollRow {
+  title: string;
+  status: string;
+}
+interface AliasPollOptionRow {
+  id: string;
+  label: string;
+}
+interface AliasPollVoteRow {
+  option_id: string;
+}
+
+async function fetchAliasPoll(id: string): Promise<AliasPollRow | null> {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    console.error('middleware: missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY');
+    return null;
+  }
+  const endpoint = `${url}/rest/v1/alias_polls?id=eq.${encodeURIComponent(id)}&select=title,status`;
+  const res = await fetch(endpoint, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  if (!res.ok) return null;
+  const rows = (await res.json()) as AliasPollRow[];
+  return rows[0] ?? null;
+}
+
+async function fetchAliasPollOptions(id: string): Promise<AliasPollOptionRow[]> {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return [];
+  const endpoint = `${url}/rest/v1/alias_poll_options?poll_id=eq.${encodeURIComponent(id)}&select=id,label`;
+  const res = await fetch(endpoint, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  if (!res.ok) return [];
+  return (await res.json()) as AliasPollOptionRow[];
+}
+
+// option_id ONLY — alias_poll_votes_public is the same guest-safe view
+// api/poll-keepsake.tsx reads from; never alias/message/avatar/real_name.
+async function fetchAliasPollVotes(id: string): Promise<AliasPollVoteRow[]> {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return [];
+  const endpoint = `${url}/rest/v1/alias_poll_votes_public?poll_id=eq.${encodeURIComponent(id)}&select=option_id`;
+  const res = await fetch(endpoint, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  if (!res.ok) return [];
+  return (await res.json()) as AliasPollVoteRow[];
+}
+
+// Mirrors tallyOptions/pickWinners in src/data/polls.ts (which has its own
+// separate copy in api/poll-keepsake.tsx too) — reimplemented locally
+// rather than imported/shared across these Edge Runtime entry points, same
+// isolation reasoning as fmtDate above.
+interface AliasPollOptionCount {
+  option: AliasPollOptionRow;
+  count: number;
+}
+function tallyAliasPollOptions(options: AliasPollOptionRow[], votes: AliasPollVoteRow[]): AliasPollOptionCount[] {
+  return options.map((option) => ({ option, count: votes.filter((v) => v.option_id === option.id).length }));
+}
+function pickAliasPollWinners(counts: AliasPollOptionCount[]): AliasPollOptionCount[] {
+  const max = Math.max(0, ...counts.map((c) => c.count));
+  if (max === 0) return [];
+  return counts.filter((c) => c.count === max);
+}
+
+async function pollMetaResponse(url: URL, id: string): Promise<Response> {
+  const poll = await fetchAliasPoll(id);
+
+  if (!poll) {
+    return metaResponse({
+      origin: url.origin,
+      path: url.pathname,
+      title: 'Poll not found — Komon',
+      description: 'This poll may have been removed.',
+      image: `${url.origin}/og/default.png`,
+      imageDimensions: { width: 1200, height: 630 },
+    });
+  }
+
+  const title = `${poll.title} — Komon`;
+
+  if (poll.status !== 'closed') {
+    // Open poll — the result can still change, same short cache as the
+    // gathering fallback below (metaResponse's own default).
+    return metaResponse({
+      origin: url.origin,
+      path: url.pathname,
+      title,
+      description: 'Vote now on Komon.',
+      image: `${url.origin}/og/default.png`,
+      imageDimensions: { width: 1200, height: 630 },
+    });
+  }
+
+  const [options, votes] = await Promise.all([fetchAliasPollOptions(id), fetchAliasPollVotes(id)]);
+  const winners = pickAliasPollWinners(tallyAliasPollOptions(options, votes));
+
+  if (winners.length !== 1) {
+    // Tie or zero votes — no single clean result to put in the image, so
+    // this falls back the same as an open poll (same short cache too).
+    return metaResponse({
+      origin: url.origin,
+      path: url.pathname,
+      title,
+      description: 'This poll has closed.',
+      image: `${url.origin}/og/default.png`,
+      imageDimensions: { width: 1200, height: 630 },
+    });
+  }
+
+  // Single winner — the real per-poll keepsake image. Cached
+  // aggressively: a closed poll's result never changes.
+  return metaResponse({
+    origin: url.origin,
+    path: url.pathname,
+    title,
+    description: `${winners[0].option.label} won the vote — see the full result.`,
+    image: `${url.origin}/api/poll-keepsake?id=${encodeURIComponent(id)}&size=1200x630`,
+    imageDimensions: { width: 1200, height: 630 },
+    cacheControl: 'public, max-age=31536000, immutable',
   });
 }
 
@@ -162,42 +304,52 @@ export default async function middleware(request: Request): Promise<Response | u
   if (!CRAWLER_UA.test(ua)) return undefined; // real visitors: fall through to the SPA, untouched
 
   const url = new URL(request.url);
-  const match = /^\/g\/([^/]+)$/.exec(url.pathname);
-  if (!match) return undefined;
-  const id = decodeURIComponent(match[1]);
 
-  const gathering = await fetchGathering(id);
+  const gatheringMatch = /^\/g\/([^/]+)$/.exec(url.pathname);
+  if (gatheringMatch) {
+    const id = decodeURIComponent(gatheringMatch[1]);
 
-  if (!gathering) {
+    const gathering = await fetchGathering(id);
+
+    if (!gathering) {
+      return metaResponse({
+        origin: url.origin,
+        path: url.pathname,
+        title: 'Gathering not found — Komon',
+        description: 'This gathering may have been removed.',
+        image: `${url.origin}/og/default.png`,
+        imageDimensions: { width: 1200, height: 630 },
+      });
+    }
+
+    const cancelled = Boolean(gathering.cancelled_at);
+    const title = `${cancelled ? 'Cancelled: ' : ''}${gathering.title} — Komon`;
+
+    const dateLabel = fmtDate(gathering.gathering_date);
+    const timeLabel = gathering.gathering_time ? ` · ${gathering.gathering_time}` : '';
+    const locationLabel = gathering.location ? ` — ${gathering.location}` : '';
+    const description = cancelled
+      ? `Cancelled by the organizer. Was ${dateLabel}${timeLabel}${locationLabel}.`
+      : `${dateLabel}${timeLabel}${locationLabel}`;
+
+    const usingFallback = !gathering.cover_image_url;
+    const image = gathering.cover_image_url || `${url.origin}/og/default.png`;
+
     return metaResponse({
       origin: url.origin,
       path: url.pathname,
-      title: 'Gathering not found — Komon',
-      description: 'This gathering may have been removed.',
-      image: `${url.origin}/og/default.png`,
-      imageDimensions: { width: 1200, height: 630 },
+      title,
+      description,
+      image,
+      imageDimensions: usingFallback ? { width: 1200, height: 630 } : undefined,
     });
   }
 
-  const cancelled = Boolean(gathering.cancelled_at);
-  const title = `${cancelled ? 'Cancelled: ' : ''}${gathering.title} — Komon`;
+  const pollMatch = /^\/p\/([^/]+)$/.exec(url.pathname);
+  if (pollMatch) {
+    const id = decodeURIComponent(pollMatch[1]);
+    return pollMetaResponse(url, id);
+  }
 
-  const dateLabel = fmtDate(gathering.gathering_date);
-  const timeLabel = gathering.gathering_time ? ` · ${gathering.gathering_time}` : '';
-  const locationLabel = gathering.location ? ` — ${gathering.location}` : '';
-  const description = cancelled
-    ? `Cancelled by the organizer. Was ${dateLabel}${timeLabel}${locationLabel}.`
-    : `${dateLabel}${timeLabel}${locationLabel}`;
-
-  const usingFallback = !gathering.cover_image_url;
-  const image = gathering.cover_image_url || `${url.origin}/og/default.png`;
-
-  return metaResponse({
-    origin: url.origin,
-    path: url.pathname,
-    title,
-    description,
-    image,
-    imageDimensions: usingFallback ? { width: 1200, height: 630 } : undefined,
-  });
+  return undefined;
 }

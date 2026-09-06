@@ -10,6 +10,8 @@ import {
   formatCloseCountdown,
   formatDuration,
   guestCanSeeResults,
+  pickWinners,
+  tallyOptions,
   wallUnlocked,
 } from '../data/polls';
 import type { AliasPoll, AliasPollOption, AliasPollVotePublic } from '../lib/database.types';
@@ -19,6 +21,7 @@ import { PollWall } from '../components/polls/PollWall';
 import { PollStatusPill } from '../components/polls/PollStatusPill';
 import { PollVoterRow } from '../components/polls/PollVoterRow';
 import { PollWinnerHero } from '../components/polls/PollWinnerHero';
+import { PollKeepsakeShare } from '../components/polls/PollKeepsakeShare';
 
 // No emoji-avatar generation exists anymore (round 5 removed the alias
 // Shuffle/emoji UI — see the alias field below) but alias_avatar is still
@@ -118,6 +121,10 @@ export function PollVote() {
   if (poll.status === 'closed') {
     const messageCount = votes.filter((v) => v.message?.trim()).length;
     const duration = poll.closed_at ? formatDuration(poll.created_at, poll.closed_at) : '—';
+    // PollWinnerHero computes the same thing internally to render its own
+    // card — this is the cheap gate check the keepsake share control needs,
+    // not a duplication of its rendering logic.
+    const isSingleWinner = pickWinners(tallyOptions(options, votes)).length === 1;
     return (
       <div className="wrap">
         <div className="poll-page-body">
@@ -126,6 +133,7 @@ export function PollVote() {
           <h1>{poll.title}</h1>
           <p className="lede">This poll is closed, here's how it landed.</p>
           <PollWinnerHero options={options} votes={votes} />
+          <PollKeepsakeShare pollId={id} isSingleWinner={isSingleWinner} />
           <div className="poll-wrapup-meta">
             <PollVoterRow votes={votes} max={4} />
             {votes.length > 0 && <span className="board-dot" />}
