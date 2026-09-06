@@ -1,35 +1,50 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchBoardGatherings } from '../data/gatherings';
+import { fetchBoardPolls, type BoardPoll } from '../data/polls';
 import type { GatheringWithRelations } from '../lib/database.types';
 import { BoardGatheringCard } from '../components/BoardGatheringCard';
 import { BoardBillCard } from '../components/BoardBillCard';
+import { BoardPollCard } from '../components/BoardPollCard';
 import { useCreateGate } from '../hooks/useCreateGate';
+import { useAuth } from '../hooks/useAuth';
 
-type TabKey = 'all' | 'split_bill' | 'event';
+type TabKey = 'all' | 'split_bill' | 'event' | 'poll';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'split_bill', label: 'Bills' },
   { key: 'event', label: 'Gatherings' },
+  { key: 'poll', label: 'Polls' },
 ];
 
 // Mobile's tab-select popover uses its own (shorter) labels — confirmed from
 // the Figma frame's actual text nodes ("Gathering" singular, "Closed" not
 // "Closed Items"), not just guessed as an abbreviation of the desktop copy.
-const MOBILE_TAB_LABELS: Record<TabKey, string> = { all: 'All', split_bill: 'Bills', event: 'Gathering' };
+const MOBILE_TAB_LABELS: Record<TabKey, string> = { all: 'All', split_bill: 'Bills', event: 'Gathering', poll: 'Poll' };
+
+// A local normalized union so gatherings/bills AND alias polls flow through
+// the exact same tabs/search/date-grouping/timeline/empty-state pipeline,
+// rather than forking a parallel poll-only UI. Not a change to any shared
+// type — gatherings keep GatheringWithRelations as-is, polls keep BoardPoll
+// as-is; this just wraps each in a common shape for this page's own use.
+type BoardItem =
+  | { kind: 'event' | 'split_bill'; id: string; dateKey: string; title: string; gathering: GatheringWithRelations }
+  | { kind: 'poll'; id: string; dateKey: string; title: string; poll: BoardPoll };
 
 function formatGroupDate(dateStr: string): string {
   return new Date(`${dateStr}T00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 // Board only ever renders for a signed-in session (see Home.tsx — anonymous
-// visitors get Landing instead), so every gathering/bill shown here always
-// belongs to someone with an account; no anonymous-vs-signed-in branching
-// needed within the page itself the way Nav.tsx has to.
+// visitors get Landing instead), so every gathering/bill/poll shown here
+// always belongs to someone with an account; no anonymous-vs-signed-in
+// branching needed within the page itself the way Nav.tsx has to.
 export function Board() {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [gatherings, setGatherings] = useState<GatheringWithRelations[]>([]);
+  const [polls, setPolls] = useState<BoardPoll[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<TabKey>('all');
@@ -39,18 +54,24 @@ export function Board() {
   // shows) at a time. See the "Tabs"/"Add / plus"/"Search" mobile Figma
   // frames — each is this same row in a different state.
   const [mobileOverlay, setMobileOverlay] = useState<'none' | 'search' | 'tabs' | 'add'>('none');
-  // Nav.tsx's own create actions ("+ New gathering"/"+Split bill") are
-  // hidden on mobile — Figma moves that action into Board's own toolbar
-  // there (a "+" button next to the tab selector, not the nav bar), so this
-  // page needs its own gate/modal pair for that mobile-only entry point.
+  // Nav.tsx's own create actions ("+ New gathering"/"+Split bill"/"+ New
+  // poll") are hidden on mobile — Figma moves that action into Board's own
+  // toolbar there (a "+" button next to the tab selector, not the nav bar),
+  // so this page needs its own gate/modal pair for that mobile-only entry
+  // point.
   const createGate = useCreateGate();
   const splitBillGate = useCreateGate('/split/create');
+  const pollGate = useCreateGate('/poll/new');
 
   useEffect(() => {
     let mounted = true;
-    fetchBoardGatherings()
-      .then((data) => {
-        if (mounted) setGatherings(data);
+    if (!userId) return;
+    Promise.all([fetchBoardGatherings(), fetchBoardPolls(userId)])
+      .then(([g, p]) => {
+        if (mounted) {
+          setGatherings(g);
+          setPolls(p);
+        }
       })
       .catch((err) => console.error(err))
       .finally(() => {
@@ -59,45 +80,75 @@ export function Board() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [userId]);
 
   // The board only shows active items — gatherings and split bills share
   // the same cancelled_at mechanism, so one filter covers both. Closed
   // items stay on the separate /closed reference list (see the "Closed
   // Items" tab below, which links there rather than filtering in place —
   // a deliberate choice to keep that page's low-visibility treatment
-  // rather than fully merging it into the live board).
+  // rather than fully merging it into the live board). Polls need no
+  // equivalent filter here — fetchBoardPolls already scopes to status
+  // 'open' itself; closed polls surface on /closed via fetchClosedPolls.
   const activeGatherings = useMemo(() => gatherings.filter((g) => !g.cancelled_at), [gatherings]);
 
+  const allItems = useMemo<BoardItem[]>(() => {
+    const gatheringItems: BoardItem[] = activeGatherings.map((g) => ({
+      kind: g.kind,
+      id: g.id,
+      dateKey: g.gathering_date,
+      title: g.title,
+      gathering: g,
+    }));
+    const pollItems: BoardItem[] = polls.map((p) => ({
+      kind: 'poll',
+      id: p.id,
+      // Polls have no date/time field beyond created_at/closed_at — same
+      // "no real event date" precedent as createSplitBill's gathering_date
+      // default in data/gatherings.ts.
+      dateKey: p.created_at.slice(0, 10),
+      title: p.title,
+      poll: p,
+    }));
+    return [...gatheringItems, ...pollItems];
+  }, [activeGatherings, polls]);
+
   const kindFiltered = useMemo(() => {
-    if (tab === 'all') return activeGatherings;
-    return activeGatherings.filter((g) => g.kind === tab);
-  }, [activeGatherings, tab]);
+    if (tab === 'all') return allItems;
+    return allItems.filter((i) => i.kind === tab);
+  }, [allItems, tab]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return kindFiltered;
-    return kindFiltered.filter((g) => g.title.toLowerCase().includes(q) || (g.location ?? '').toLowerCase().includes(q));
+    return kindFiltered.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        (item.kind !== 'poll' && (item.gathering.location ?? '').toLowerCase().includes(q))
+    );
   }, [kindFiltered, query]);
 
   // Grouped by date for the pill headers + timeline, most-upcoming first.
   const dateGroups = useMemo(() => {
-    const map = new Map<string, GatheringWithRelations[]>();
-    for (const g of filtered) {
-      const list = map.get(g.gathering_date);
-      if (list) list.push(g);
-      else map.set(g.gathering_date, [g]);
+    const map = new Map<string, BoardItem[]>();
+    for (const item of filtered) {
+      const list = map.get(item.dateKey);
+      if (list) list.push(item);
+      else map.set(item.dateKey, [item]);
     }
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, items]) => ({ date, items }));
   }, [filtered]);
 
-  function renderCard(g: GatheringWithRelations) {
-    return g.kind === 'split_bill' ? (
-      <BoardBillCard key={g.id} g={g} onClick={() => navigate(`/g/${g.id}`)} />
+  function renderCard(item: BoardItem) {
+    if (item.kind === 'poll') {
+      return <BoardPollCard key={item.id} poll={item.poll} onClick={() => navigate(`/poll/${item.id}/organize`)} />;
+    }
+    return item.kind === 'split_bill' ? (
+      <BoardBillCard key={item.id} g={item.gathering} onClick={() => navigate(`/g/${item.id}`)} />
     ) : (
-      <BoardGatheringCard key={g.id} g={g} onClick={() => navigate(`/g/${g.id}`)} />
+      <BoardGatheringCard key={item.id} g={item.gathering} onClick={() => navigate(`/g/${item.id}`)} />
     );
   }
 
@@ -253,6 +304,16 @@ export function Board() {
           >
             New gathering
           </button>
+          <button
+            type="button"
+            className="board-mobile-overlay-pill dark"
+            onClick={() => {
+              setMobileOverlay('none');
+              pollGate.requestCreate();
+            }}
+          >
+            New poll
+          </button>
         </div>
       )}
 
@@ -263,20 +324,22 @@ export function Board() {
       ) : (
         <div className="board-timeline">
           {dateGroups.map(({ date, items }) => {
-            // "All" splits into two fixed columns by type — gatherings
-            // always left, bills always right — not alternated by index.
-            // Confirmed against the Figma frame directly: every bill card
-            // sits at left:calc(50%+296px) and every gathering card at
-            // left:calc(50%-296px), regardless of order. A single kind
-            // filter (Bills/Gatherings) stays one column.
+            // "All" splits into two fixed columns by type — bills always
+            // right, everything else (gatherings + polls) always left, not
+            // alternated by index. Confirmed against the Figma frame
+            // directly: every bill card sits at left:calc(50%+296px) and
+            // every gathering card at left:calc(50%-296px), regardless of
+            // order. Polls join the gatherings column rather than forcing a
+            // third column, keeping this split's CSS/positioning untouched.
+            // A single kind filter (Bills/Gatherings/Polls) stays one column.
             const twoColumn = tab === 'all';
-            const left = twoColumn ? items.filter((g) => g.kind === 'event') : items;
-            const right = twoColumn ? items.filter((g) => g.kind === 'split_bill') : [];
+            const left = twoColumn ? items.filter((i) => i.kind !== 'split_bill') : items;
+            const right = twoColumn ? items.filter((i) => i.kind === 'split_bill') : [];
             return (
               <div className="board-date-group" key={date}>
                 <div className="board-date-pill">{formatGroupDate(date)}</div>
-                {/* Desktop: gatherings-left/bills-right split (or single
-                    column when filtered) — hidden on mobile. */}
+                {/* Desktop: gatherings/polls-left, bills-right split (or
+                    single column when filtered) — hidden on mobile. */}
                 <div className={`board-timeline-row board-timeline-row-desktop${twoColumn ? ' two-col' : ' one-col'}`}>
                   <div className="board-timeline-spine" />
                   <div className="board-timeline-col">{left.map(renderCard)}</div>

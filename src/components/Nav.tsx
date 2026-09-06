@@ -17,6 +17,7 @@ export function Nav() {
   const { isPersistent, email, signOut } = useAuth();
   const createGate = useCreateGate();
   const splitBillGate = useCreateGate('/split/create');
+  const pollGate = useCreateGate('/poll/new');
 
   const gatheringMatch = matchPath('/g/:id', location.pathname);
   const viewingGatheringId = gatheringMatch?.params.id ?? null;
@@ -79,6 +80,29 @@ export function Nav() {
     );
   }
 
+  // Anonymous visitor on a specific poll's page: same minimal treatment as
+  // the gathering case above — just the logo and a "+ Create poll" CTA. No
+  // Board link, other creation buttons, or account indicator. Unlike the
+  // gathering case there's no per-poll kind to resolve, so the CTA is always
+  // shown immediately.
+  const pollMatch = matchPath('/p/:id', location.pathname);
+  if (!isPersistent && pollMatch) {
+    return (
+      <nav>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button className="word" onClick={() => navigate('/')}>
+            <Logo />
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="navbtn" onClick={pollGate.requestCreate}>
+            + Create poll
+          </button>
+        </div>
+      </nav>
+    );
+  }
+
   // Anonymous visitor on the root path — Landing.tsx renders its own full
   // header (logo + "Join our waitlist" pill, per the Figma frame it was
   // rebuilt from), so this bar renders nothing here to avoid a duplicate
@@ -111,11 +135,6 @@ export function Nav() {
           <Logo />
         </button>
         <div className="board-nav-actions">
-          {installable && (
-            <button className="navbtn" onClick={handleInstall}>
-              Install app
-            </button>
-          )}
           <Link to="/" className="navbtn">
             Board
           </Link>
@@ -124,6 +143,9 @@ export function Nav() {
           </button>
           <button className="navbtn accent" onClick={splitBillGate.requestCreate}>
             +Split bill
+          </button>
+          <button className="navbtn" onClick={pollGate.requestCreate}>
+            + New poll
           </button>
           <Menu.Root>
             <Menu.Trigger className="account-trigger" aria-label="Account menu">
@@ -137,6 +159,11 @@ export function Nav() {
                     <img src="/icons/board/profile-circle.svg" alt="" width={20} height={20} />
                     <span>{email}</span>
                   </div>
+                  {installable && (
+                    <Menu.Item className="account-dropdown-logout" onClick={handleInstall}>
+                      Install app
+                    </Menu.Item>
+                  )}
                   <Menu.Item className="account-dropdown-logout" onClick={handleSignOut}>
                     Log out
                     <img src="/icons/board/log-out.svg" alt="" width={20} height={20} />
@@ -160,6 +187,11 @@ export function Nav() {
                   <img src="/icons/board/profile-circle.svg" alt="" width={20} height={20} />
                   <span>{email}</span>
                 </div>
+                {installable && (
+                  <Menu.Item className="mobile-nav-menu-item" onClick={handleInstall}>
+                    Install app
+                  </Menu.Item>
+                )}
                 <Menu.Item className="mobile-nav-menu-item" onClick={handleSignOut}>
                   Log out
                   <img src="/icons/board/log-out.svg" alt="" width={20} height={20} />

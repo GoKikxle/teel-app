@@ -1,7 +1,18 @@
-// Vercel Edge Middleware — serves crawler-only requests to /g/:id a tiny
-// static HTML document with real per-gathering og:/twitter: meta tags.
-// Real browsers get nothing back here (the function returns undefined) and
-// fall through to the normal Vite SPA, unchanged.
+// Vercel Edge Middleware — serves crawler-only requests to /g/:id and
+// /p/:id a tiny static HTML document with real per-item og:/twitter: meta
+// tags. Real browsers get nothing back here (the function returns
+// undefined) and fall through to the normal Vite SPA, unchanged.
+//
+// The /p/:id (Alias Polls) branch was added alongside the original /g/:id
+// (gatherings) one below — additive only, the gathering branch's own logic
+// is untouched. It only ever serves the static branded default.png image
+// (same as gatherings' own no-cover-photo fallback) with a title/
+// description that reflects whether the poll is still open or has closed.
+// A per-poll result image (api/poll-keepsake.tsx, via @vercel/og) was
+// attempted here and then archived — @vercel/og proved incompatible with
+// this project's plain Vite + Vercel Functions setup under both ESM and
+// CommonJS output, confirmed via direct testing rather than a fixable
+// config issue — so this branch stays image-less for now.
 //
 // Why this exists at all: link-preview crawlers (WhatsApp, iMessage,
 // Slack, Discord, ...) don't execute JavaScript — they read whatever HTML
@@ -43,7 +54,7 @@
 // (72px icon, 255x48 lettermark, 12px gap, centered), capture it, and
 // save over public/og/default.png at exactly 1200x630.
 export const config = {
-  matcher: ['/g/:id'],
+  matcher: ['/g/:id', '/p/:id'],
 };
 
 // Edge Runtime only actually exposes process.env (for the project's
@@ -157,47 +168,112 @@ function metaResponse(params: {
   });
 }
 
-export default async function middleware(request: Request): Promise<Response | undefined> {
-  const ua = request.headers.get('user-agent') || '';
-  if (!CRAWLER_UA.test(ua)) return undefined; // real visitors: fall through to the SPA, untouched
+// --- Alias Polls (/p/:id) --------------------------------------------
+// Separate fetch helper/interface from the gathering ones above rather
+// than a shared generic REST helper — keeps this branch trivially
+// readable and free of any coupling that could risk changing gathering
+// behavior while touching poll code. No per-poll og:image (see the file
+// header comment) — every poll state renders the same static
+// public/og/default.png gatherings use, just with a title/description
+// that reflects whether it's still open or has closed.
 
-  const url = new URL(request.url);
-  const match = /^\/g\/([^/]+)$/.exec(url.pathname);
-  if (!match) return undefined;
-  const id = decodeURIComponent(match[1]);
+interface AliasPollRow {
+  title: string;
+  status: string;
+}
 
-  const gathering = await fetchGathering(id);
+async function fetchAliasPoll(id: string): Promise<AliasPollRow | null> {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    console.error('middleware: missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY');
+    return null;
+  }
+  const endpoint = `${url}/rest/v1/alias_polls?id=eq.${encodeURIComponent(id)}&select=title,status`;
+  const res = await fetch(endpoint, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  if (!res.ok) return null;
+  const rows = (await res.json()) as AliasPollRow[];
+  return rows[0] ?? null;
+}
 
-  if (!gathering) {
+async function pollMetaResponse(url: URL, id: string): Promise<Response> {
+  const poll = await fetchAliasPoll(id);
+
+  if (!poll) {
     return metaResponse({
       origin: url.origin,
       path: url.pathname,
-      title: 'Gathering not found — Komon',
-      description: 'This gathering may have been removed.',
+      title: 'Poll not found — Komon',
+      description: 'This poll may have been removed.',
       image: `${url.origin}/og/default.png`,
       imageDimensions: { width: 1200, height: 630 },
     });
   }
 
-  const cancelled = Boolean(gathering.cancelled_at);
-  const title = `${cancelled ? 'Cancelled: ' : ''}${gathering.title} — Komon`;
-
-  const dateLabel = fmtDate(gathering.gathering_date);
-  const timeLabel = gathering.gathering_time ? ` · ${gathering.gathering_time}` : '';
-  const locationLabel = gathering.location ? ` — ${gathering.location}` : '';
-  const description = cancelled
-    ? `Cancelled by the organizer. Was ${dateLabel}${timeLabel}${locationLabel}.`
-    : `${dateLabel}${timeLabel}${locationLabel}`;
-
-  const usingFallback = !gathering.cover_image_url;
-  const image = gathering.cover_image_url || `${url.origin}/og/default.png`;
+  const title = `${poll.title} — Komon`;
+  const description = poll.status === 'closed' ? 'This poll has closed.' : 'Vote now on Komon.';
 
   return metaResponse({
     origin: url.origin,
     path: url.pathname,
     title,
     description,
-    image,
-    imageDimensions: usingFallback ? { width: 1200, height: 630 } : undefined,
+    image: `${url.origin}/og/default.png`,
+    imageDimensions: { width: 1200, height: 630 },
   });
+}
+
+export default async function middleware(request: Request): Promise<Response | undefined> {
+  const ua = request.headers.get('user-agent') || '';
+  if (!CRAWLER_UA.test(ua)) return undefined; // real visitors: fall through to the SPA, untouched
+
+  const url = new URL(request.url);
+
+  const gatheringMatch = /^\/g\/([^/]+)$/.exec(url.pathname);
+  if (gatheringMatch) {
+    const id = decodeURIComponent(gatheringMatch[1]);
+
+    const gathering = await fetchGathering(id);
+
+    if (!gathering) {
+      return metaResponse({
+        origin: url.origin,
+        path: url.pathname,
+        title: 'Gathering not found — Komon',
+        description: 'This gathering may have been removed.',
+        image: `${url.origin}/og/default.png`,
+        imageDimensions: { width: 1200, height: 630 },
+      });
+    }
+
+    const cancelled = Boolean(gathering.cancelled_at);
+    const title = `${cancelled ? 'Cancelled: ' : ''}${gathering.title} — Komon`;
+
+    const dateLabel = fmtDate(gathering.gathering_date);
+    const timeLabel = gathering.gathering_time ? ` · ${gathering.gathering_time}` : '';
+    const locationLabel = gathering.location ? ` — ${gathering.location}` : '';
+    const description = cancelled
+      ? `Cancelled by the organizer. Was ${dateLabel}${timeLabel}${locationLabel}.`
+      : `${dateLabel}${timeLabel}${locationLabel}`;
+
+    const usingFallback = !gathering.cover_image_url;
+    const image = gathering.cover_image_url || `${url.origin}/og/default.png`;
+
+    return metaResponse({
+      origin: url.origin,
+      path: url.pathname,
+      title,
+      description,
+      image,
+      imageDimensions: usingFallback ? { width: 1200, height: 630 } : undefined,
+    });
+  }
+
+  const pollMatch = /^\/p\/([^/]+)$/.exec(url.pathname);
+  if (pollMatch) {
+    const id = decodeURIComponent(pollMatch[1]);
+    return pollMetaResponse(url, id);
+  }
+
+  return undefined;
 }

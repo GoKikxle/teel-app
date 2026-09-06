@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Switch } from '@base-ui/react/switch';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -17,6 +17,8 @@ const TOTAL_STEPS = 2;
 
 export function Create() {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
+  const [searchParams] = useSearchParams();
   const { userId, ready, isPersistent } = useAuth();
   const toast = useToast();
 
@@ -24,13 +26,20 @@ export function Create() {
   // navigate here until signed in), but this covers a direct URL visit —
   // the form itself must never render for an anonymous session. Redirects
   // straight to /signin rather than showing an in-between "Sign in to
-  // create" screen — no reason to make someone click twice.
+  // create" screen — no reason to make someone click twice. Preserves the
+  // current query string (not just the bare path) so an anonymous visit to
+  // /create?fromPoll=... (Alias Polls' "Start a gathering" CTA) still
+  // resumes with that prefill intact after signing in.
   useEffect(() => {
-    if (ready && !isPersistent) navigate('/signin?next=/create', { replace: true });
-  }, [ready, isPersistent, navigate]);
+    if (ready && !isPersistent) navigate(`/signin?next=${encodeURIComponent(routerLocation.pathname + routerLocation.search)}`, { replace: true });
+  }, [ready, isPersistent, routerLocation, navigate]);
 
   const [step, setStep] = useState(1);
-  const [title, setTitle] = useState('');
+  // Alias Polls' "Start a gathering" CTA (src/pages/PollOrganize.tsx) links
+  // here as /create?fromPoll=<id>&title=<question> — title-prefill only,
+  // per the flagged v1 decision (no auto-invite, no contact field collected
+  // at vote time). Read once on mount; nothing else about this form changes.
+  const [title, setTitle] = useState(() => searchParams.get('title') || '');
   const [cat, setCat] = useState<Category>('hike_sports');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');

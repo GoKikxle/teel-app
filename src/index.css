@@ -299,6 +299,11 @@ input[type=text], input[type=email], input[type=number], input[type=date], input
   font-family: inherit; font-size: 15px; color: var(--ink);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
+/* Constrains the browser's free-form resize handle to vertical-only — the
+   only <textarea> in the app today (Alias Polls' message field) was
+   showing the default diagonal resize affordance, which can drag the
+   field wider than its own container. */
+textarea { resize: vertical; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 45, 85, .14); outline: none; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cats { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -444,9 +449,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    stack the card sits below the core fields already spaced by
    .create-layout's row-gap, not beside the padded header, so this
    shouldn't stack on top of that. */
-.create-page .preview-wrap { position: static; top: auto; margin-top: 40px; }
+/* .poll-create-page (PollCreate.tsx) shares this same "static, no sticky
+   drift" fix, extended onto the same rule rather than duplicated — see
+   the comment above: the reasoning (a grid row taller than the preview
+   card outrunning position:sticky's slack) applies identically once that
+   page adopted .create-layout/.preview-wrap in round 4. */
+.create-page .preview-wrap, .poll-create-page .preview-wrap { position: static; top: auto; margin-top: 40px; }
 @media (max-width: 760px) {
-  .create-page .preview-wrap { margin-top: 0; }
+  .create-page .preview-wrap, .poll-create-page .preview-wrap { margin-top: 0; }
 }
 .preview-flyer { position: relative; background: var(--card); padding: 26px 20px 26px; border-radius: 2px; box-shadow: var(--elevation-3); transform: rotate(1.2deg); min-height: 220px; animation: riseIn .4s var(--ease) backwards; transition: box-shadow .2s var(--ease); }
 .preview-flyer .stripe { position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--ink-faint); }
@@ -1247,6 +1257,443 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   .board-progress-ring::before { inset: 4px; }
   .board-progress-ring span { font-size: 10px; }
 }
+
+/* ===========================================================================
+   Alias Polls — built from the reviewed prototype (Create/Vote/Organizer/
+   Wrap-up), not a Figma pull. Rebuilt entirely in Komon's existing tokens
+   (--accent/--ink/--card/#ede9e2/Plus Jakarta Sans/DM Mono) rather than the
+   prototype's own palette (boy/girl/alias hues) — every bar/fill below uses
+   a single --accent, matching this app's one-accent-color convention
+   instead of introducing a new multi-color system. All classes are scoped
+   under a poll- prefix; nothing shared is restyled. .panel/.field/label/
+   input[type=text]/textarea/.primary-btn/.btn-outline/.toggle-row/.switch/
+   .share-row/.wall-title(-equivalent)/.poll-hint above are reused as-is.
+   =========================================================================== */
+.poll-mono { font-family: 'DM Mono', monospace; font-variant-numeric: tabular-nums; font-feature-settings: "zero" 0; }
+.poll-wall-title { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 12px; gap: 10px; }
+.poll-wall-title h2 { margin: 0; }
+.poll-hidden-tag {
+  font-family: 'DM Mono', monospace; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: #595959; background: #f4f2ee; border: 1px solid #ede9e2; padding: 4px 9px; border-radius: 999px;
+}
+
+/* Root-cause width fix — the three Alias Polls pages were built as one
+   wide panel spanning the full .wrap column (~920px), while every other
+   single-column form in the app (New Gathering's fields column, Split
+   Bill's own `.panel` at style={{maxWidth:480}}) caps out around 480px.
+   That single extra ~440px of unused width is what stranded the vote-page
+   radio dots, bloated the chart preview dead space, and made the intro
+   paragraph read as half-width — reapplying the same 480px measure here
+   instead of hand-rolling a new one. margin-top: 40px on the wrapping body
+   replicates the same back-link-to-content gap New Gathering gets for
+   free from .create-eyebrow-row's own padding-top (see .closed-panel's
+   identical margin-top: 40px for the same "whole page content in one
+   card" shape). */
+.poll-page-body { margin-top: 40px; }
+.poll-page-panel { max-width: 480px; }
+/* h1's shared default (margin: 8px 0 4px) adds an extra 8px on top of
+   .panel's own uniform 16px padding when h1 is the panel's first child —
+   these panels have no separate page-level heading above them the way
+   Create.tsx/SplitBillCreate.tsx do, so the title sits directly inside.
+   Same fix as .closed-panel h1's own margin: 0 for the identical
+   "whole page content in one self-contained card" shape, so top and
+   bottom padding read as the same 16px instead of top reading larger. */
+.poll-page-panel > h1:first-child { margin-top: 0; }
+/* h1's shared default only carries a 4px bottom margin, which reads cramped
+   against a .lede placed directly under it (organizer wrap-up's "Here's the
+   keepsake…" line, guest closed-view's "This poll is closed…" line) —
+   scoped to this exact adjacency so .create-page's own .lede spacing
+   (set separately) is untouched. */
+.poll-page-panel > h1 + .lede { margin-top: 10px; }
+/* Caption-style label helper — the same "label, then a light caption,
+   then real spacing before the field" rhythm .mode-sub already uses under
+   .mode-title, applied here instead of the body-sized .poll-hint (which
+   stays as-is for its other, non-label-adjacent uses: share-link captions,
+   lock callouts, etc). */
+.field-hint { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: var(--ink-faint); line-height: 1.4; margin: -4px 0 8px; }
+/* Multiple Base UI Switch settings rows in one bordered panel with
+   dividers, instead of each .toggle-row stacked as its own separate
+   bordered card — .toggle-row itself is untouched (Create.tsx/Edit.tsx/
+   SplitPayPanel.tsx all still get their own standalone bordered card),
+   this only changes how .toggle-row looks when nested inside .toggle-group. */
+.toggle-group { border: 1px solid #f0f0f0; border-radius: 12px; background: var(--card); margin-bottom: 10px; overflow: hidden; }
+.toggle-group .toggle-row { border: none; border-radius: 0; margin-bottom: 0; border-bottom: 1px solid #f0f0f0; }
+.toggle-group .toggle-row:last-child { border-bottom: none; }
+
+/* --- Create screen: option rows --- */
+.poll-opt-block { margin-bottom: 14px; }
+.poll-opt-block:last-child { margin-bottom: 0; }
+.poll-opt-row { display: flex; gap: 10px; margin-bottom: 6px; align-items: center; }
+.poll-opt-avatar-wrap { position: relative; flex-shrink: 0; }
+.poll-opt-avatar-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1.5px dashed #ede9e2; background: #fcfaf5;
+  display: flex; align-items: center; justify-content: center; font-size: 14px; color: #a79f91;
+  cursor: pointer; padding: 0; overflow: hidden;
+}
+.poll-opt-avatar-btn:hover { border-color: #595959; color: #595959; }
+.poll-opt-avatar-btn.has-image { border-style: solid; }
+.poll-opt-avatar-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.poll-opt-avatar-remove {
+  position: absolute; top: -3px; right: -3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink);
+  color: #fff; font-size: 10px; line-height: 16px; text-align: center; border: none; cursor: pointer; padding: 0;
+}
+.poll-opt-label-input { flex: 1; min-width: 0; }
+.poll-opt-remove {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid #ede9e2; background: var(--card);
+  color: #595959; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+.poll-opt-remove:hover { border-color: var(--ink); color: var(--ink); }
+/* Flush with the avatar's own left edge above (item: "three different left
+   edges") instead of a separate 50px indent that lined up with neither the
+   avatar nor the label. */
+.poll-opt-link-row { display: flex; align-items: center; gap: 8px; }
+.poll-opt-link-field { position: relative; flex: 1; min-width: 0; }
+/* Real inline icon instead of a literal 🔗 glyph typed into the
+   placeholder string — matches the app's existing plain-SVG icon
+   approach (no icon library dependency exists here to reuse). */
+.poll-opt-link-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  display: flex; color: #a79f91; pointer-events: none;
+}
+/* `input` prefixed onto the class so this beats the shared
+   `input[type=text]` rule's own border/background/padding on specificity
+   (bare .poll-opt-link-input tied its specificity below that attribute
+   selector and silently lost, which is why this was rendering with the
+   shared rule's solid border + white fill instead of the transparent,
+   hover-to-reveal treatment below). */
+input.poll-opt-link-input {
+  width: 100%; padding: 7px 10px 7px 30px; border-radius: 8px; border: 1px solid transparent; background: transparent;
+  color: #595959; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px;
+}
+.poll-opt-link-input:hover { background: #fcfaf5; }
+.poll-opt-link-input:focus { outline: none; background: var(--card); border-color: #ede9e2; color: var(--ink); }
+.poll-opt-link-status { font-size: 11px; color: var(--success); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.poll-opt-link-status.bad { color: #a79f91; font-weight: 500; }
+.poll-add-opt {
+  font-size: 13px; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer;
+  padding: 6px 2px; margin-bottom: 18px; font-family: inherit;
+}
+.poll-initials-badge { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .85em; }
+
+/* --- Create/Edit screen: live preview card (round 4) ---
+   Replaces the old chart-style mini-preview pair (poll-style- and
+   poll-mini- prefixed classes, removed along with the chart-style picker
+   itself). This preview instead shows the poll roughly as a guest will
+   see it on /p/:id — question + plain option rows, no bars/counts. Shell
+   values (background/border/radius/padding/shadow) copied from
+   .create-preview-card for visual
+   consistency with Create.tsx's own preview card, since that shell is
+   generic; the inner structure is new and poll-specific rather than
+   reusing .create-preview-body's gathering-only eyebrow/meta layout. */
+.poll-preview-card {
+  background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; padding: 20px;
+  box-shadow: 0 1px 2px rgba(12, 12, 13, .1), 0 1px 2px rgba(12, 12, 13, .05);
+}
+.poll-preview-question {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 22px; line-height: 1.35;
+  color: #030302; margin-bottom: 18px; word-break: break-word;
+}
+.poll-preview-options { display: flex; flex-direction: column; gap: 10px; }
+.poll-preview-option-row {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  border: 1px solid #ede9e2; border-radius: 12px; background: var(--card);
+}
+.poll-preview-option-thumb {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-size: 17px; background: #f0f0f0;
+}
+.poll-preview-option-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.poll-preview-option-label { font-size: 14.5px; font-weight: 600; color: var(--ink); flex: 1; min-width: 0; overflow-wrap: break-word; }
+
+/* Edit mode's locked-options list (PollCreate.tsx, options section, once
+   pollHasVotes is true) — same .item-breakdown list Edit.tsx's own
+   pollLocked branch uses, just with a small thumbnail added before each
+   label since a poll option (unlike a gathering's poll option) can carry
+   an image/link/emoji worth showing. */
+.poll-locked-opt-thumb {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background: #f0f0f0;
+}
+.poll-locked-opt-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* --- Vote screen --- */
+.poll-vote-opts { margin-bottom: 4px; }
+.poll-vote-opt-row { display: flex; gap: 8px; margin-bottom: 9px; align-items: stretch; }
+.poll-vote-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 16px;
+  /* var(--line) matches the contrast other list rows use (.invite-row,
+     .item-breakdown li) — #ede9e2 read as nearly invisible against the
+     white card. */
+  border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); cursor: pointer; font: inherit;
+  font-family: 'Plus Jakarta Sans', sans-serif; color: var(--ink);
+}
+.poll-vote-opt:hover:not(:disabled) { border-color: #595959; }
+.poll-vote-opt:disabled { cursor: default; }
+.poll-vote-opt.selected { border-color: var(--accent); background: rgba(255, 45, 85, .05); }
+.poll-vote-opt-badge {
+  width: 34px; height: 34px; border-radius: 50%; background: #fcfaf5; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 17px; overflow: hidden;
+}
+.poll-vote-opt-badge img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.poll-vote-opt-label { font-size: 14.5px; font-weight: 600; flex: 1; }
+.poll-vote-opt-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ede9e2; flex-shrink: 0; }
+.poll-vote-opt.selected .poll-vote-opt-dot { border-color: var(--accent); background: var(--accent); }
+.poll-vote-opt-link {
+  flex: 0 0 44px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+  border-radius: 12px; border: 1.5px solid #ede9e2; background: var(--card); color: #595959; text-decoration: none;
+}
+.poll-vote-opt-link:hover { border-color: var(--ink); color: var(--ink); }
+
+/* Round 5: replaced the generated-alias preview (avatar + Shuffle button)
+   with a plain typed field, same .field/.field-hint/input shape as every
+   other field on this form — no bespoke classes needed for it any more. */
+.poll-alias-nudge {
+  display: flex; align-items: flex-start; gap: 6px; font-size: 12px; line-height: 1.5; color: var(--ink-faint);
+  margin: -8px 0 16px;
+}
+.poll-char-count { font-size: 11px; color: #a79f91; text-align: right; margin-top: 4px; }
+
+/* Round 5: opacity applied via this class instead of an inline style, so
+   the post-vote "locked" treatment (Figma's exact 0.7, up from the
+   previous 0.55) is CSS-authored like every other state-based look on
+   this card. */
+.poll-vote-panel.locked { opacity: .7; }
+
+.poll-confirm-banner {
+  display: flex; align-items: center; gap: 10px; background: rgba(255, 45, 85, .1); border-radius: 8px;
+  padding: 13px 15px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; color: var(--ink);
+}
+.poll-confirm-tick { flex-shrink: 0; }
+/* Round 5: plain paragraph text replacing the old dashed-border
+   .poll-lock-banner card for the post-vote hidden-results/hidden-wall
+   lines — Figma shows these as plain copy, no card/border. */
+.poll-plain-note { font-size: 13px; color: #595959; line-height: 1.5; margin-bottom: 18px; }
+
+/* --- Tally (shared: vote / organizer / wrap-up) --- */
+.poll-tally { margin-bottom: 20px; }
+/* Plain text, not .poll-mono/DM Mono — this is a sentence ("N votes so
+   far"), not a tabular readout, and at N=0 DM Mono's zero glyph renders
+   slashed with no font-feature toggle to turn that off. The stat-tile and
+   per-option counts below have the same DM Mono → plain-font swap for the
+   same reason (see .poll-stat-tile .n / .poll-tally-card-head .n). */
+.poll-tally-total { font-size: 11.5px; color: #a79f91; margin-top: 10px; }
+/* Figma's track/fill: height 15px, border-radius 8px (a softer rounded
+   rect, not the fully-pill 999px this used before). */
+.poll-tally-bar-track { height: 15px; border-radius: 8px; background: #fcfaf5; overflow: hidden; }
+.poll-tally-bar { height: 100%; border-radius: 8px; background: var(--accent); transition: width .35s ease; }
+.poll-tally-card-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.poll-tally-card-thumb {
+  width: 52px; height: 52px; border-radius: 14px; background: #fcfaf5; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; box-shadow: var(--elevation-1);
+}
+.poll-tally-card-thumb-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.poll-tally-card-thumb-inner img { width: 100%; height: 100%; object-fit: cover; }
+.poll-tally-card-body { flex: 1; min-width: 0; }
+.poll-tally-card-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+/* Not DM Mono — its zero glyph renders slashed with no OpenType toggle to
+   turn that off, which reads as a glyph error at 0 votes. Plain body font
+   instead, matching how the app's other prominent numbers (.split-amt,
+   .board-card-amount, .receipt-amount) already render in Plus Jakarta
+   Sans rather than DM Mono. */
+.poll-tally-card-head .n { color: #595959; font-weight: 500; flex-shrink: 0; }
+/* flex: 1; min-width: 0 — without this, the flex item's default
+   min-width: auto blocks ellipsis from ever engaging below its content
+   width inside the space-between parent, so a long label just overflowed
+   or wrapped instead of truncating. */
+.poll-tally-card-head .l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.poll-tally-cols { display: flex; align-items: flex-end; gap: 16px; overflow-x: auto; padding: 4px 2px 6px; margin-bottom: 6px; }
+.poll-tally-col { flex: 0 0 auto; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.poll-tally-col-count { font-size: 12px; color: #595959; }
+.poll-tally-col-thumb {
+  width: 46px; height: 46px; border-radius: 14px; background: #fcfaf5; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 23px; overflow: hidden; box-shadow: var(--elevation-1);
+}
+.poll-tally-col-thumb-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 23px; }
+.poll-tally-col-thumb-inner img { width: 100%; height: 100%; object-fit: cover; }
+.poll-tally-col-track {
+  width: 36px; height: 88px; background: #fcfaf5; border-radius: 10px 10px 4px 4px;
+  display: flex; align-items: flex-end; overflow: hidden;
+}
+/* No min-height — at 0 votes pct is exactly 0, and a forced minimum
+   rendered as a thin accent-colored sliver sitting at the foot of an
+   otherwise-empty track (read as a stray underline). A genuine non-zero
+   percentage still renders a visible fill; true zero now renders none. */
+.poll-tally-col-fill { width: 100%; border-radius: 10px 10px 0 0; background: var(--accent); transition: height .35s ease; }
+.poll-tally-col-label { font-size: 11px; color: var(--ink); text-align: center; line-height: 1.3; max-width: 68px; }
+
+/* --- Message wall (shared: vote / organizer / wrap-up) --- */
+.poll-wall { display: flex; flex-direction: column; gap: 8px; }
+/* Asymmetric "speech bubble" radius (top-left/bottom-left tight, top-right/
+   bottom-right rounded) — an exact match to Figma's message bubbles,
+   confirmed poll-specific rather than the app's usual uniform-radius card
+   convention. Shorthand order is TL TR BR BL. */
+.poll-msg-card { display: flex; gap: 11px; padding: 12px 13px; border-radius: 4px 100px 100px 4px; background: #fcfaf5; }
+/* Circular initials avatar (same alias->color/initials mapping as
+   PollVoterRow's stacked avatars, via aliasColor/aliasInitials) replacing
+   the old alias_avatar emoji — matches .avatar's 32px/white-bold-initial
+   treatment rather than a one-off size. */
+.poll-msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.poll-msg-body { flex: 1; min-width: 0; }
+.poll-msg-who { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+/* Flat black — deliberately decoupled from aliasColor(displayName), which
+   only colors the avatar circle now, not the name text next to it. */
+.poll-msg-alias { font-size: 12.5px; font-weight: 700; color: #111111; }
+.poll-msg-real-name { font-size: 11px; color: #a79f91; }
+.poll-msg-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; background: rgba(255, 45, 85, .08); color: var(--accent); }
+.poll-msg-text { font-size: 13.5px; line-height: 1.5; color: var(--ink); word-wrap: break-word; }
+.poll-msg-text.empty { color: #a79f91; font-style: italic; }
+/* Own vertical padding only, no horizontal — this now sits inside a
+   .panel that already contributes 16px of padding on every side, so the
+   old 16px/12px here on top of that read as an oversized dead box once the
+   wall became its own card (see §1's card split). */
+.poll-empty-wall { text-align: center; padding: 10px 0; color: #a79f91; font-size: 13px; }
+
+/* --- Organizer screen --- */
+/* Round 2: the live view is now a stack of separate .panel cards (Results /
+   Message wall / Organizer controls) instead of one mega-card — see
+   PollOrganize.tsx. .poll-organize-head/.poll-reveal-toggle (the old
+   title+toggle flex row) are gone with it: the title is now a plain
+   .poll-page-panel > h1:first-child, and the toggle lives in its own
+   .toggle-row inside the organizer-controls card, so there's no longer a
+   title/toggle collision to guard against with flex-wrap. */
+.poll-org-actions { display: flex; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #ede9e2; }
+
+/* Figma's own two-column frame (nodes 1182:4780 live / 1182:4685 closed)
+   measures noticeably wider than this grid's old 1fr/340px/36px guess: right
+   column is a constant 517px on both screens (Organizer controls/Message
+   Wall live, the gathering CTA closed), gap is 54px, and .wrap itself needs
+   to widen to fit that — but .wrap is shared by every other page (Create,
+   Split Bill, Detail…), so the extra width is scoped to this one class
+   instead of touching .wrap's own max-width. */
+.poll-organize-wrap { max-width: 1122px; }
+.poll-organize-layout { display: grid; grid-template-columns: 1fr 517px; gap: 54px; align-items: start; }
+@media (max-width: 760px) {
+  .poll-organize-layout { grid-template-columns: 1fr; }
+}
+/* .poll-page-panel's 480px cap made sense when every card was a single
+   column of its own; inside this grid both the 1fr left track (which needs
+   to reach Figma's ~441-511px real card widths) and the fixed 517px right
+   track would otherwise get clipped to 480px, so the cap is lifted here. */
+.poll-organize-layout .poll-page-panel { max-width: none; }
+
+/* Label + info-icon-tooltip row, replacing the old label+.tsub vertical
+   stack for the two organizer-controls toggles whose explanations moved
+   into InfoTooltip popups instead of a subtitle line. */
+.toggle-row-label-wrap { display: flex; align-items: center; gap: 6px; }
+
+/* Info-icon tooltip trigger/popup (components/InfoTooltip.tsx) — Base UI's
+   Tooltip primitive, styled as a small dark flag consistent with the
+   app's other floating popups (Menu's .account-dropdown, QRModal). */
+.info-tooltip-trigger {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; border: none; background: none; padding: 0;
+  color: var(--ink-faint); cursor: pointer; flex-shrink: 0;
+}
+.info-tooltip-trigger:hover, .info-tooltip-trigger:focus-visible { color: var(--ink-soft); }
+.info-tooltip-popup {
+  max-width: 240px; background: var(--ink); color: #fff; font-size: 12.5px; line-height: 1.5;
+  padding: 8px 12px; border-radius: 8px; box-shadow: var(--elevation-2); z-index: 50;
+}
+
+/* Status pill — filled dot + plain word, replacing the plain-text
+   "Live · N votes" header line. Dot+pill structure borrows
+   .hero-vis-badge/.hero-vis-dot (neutral/closed) and .hero-cancelled-badge
+   (accent-tinted/live). Figma's own LIVE/CLOSED pills (confirmed in two
+   frames) render as plain Plus Jakarta Regular 12px with the uppercase
+   text written literally in the JSX — no text-transform/letter-spacing/DM
+   Mono here, matching that exactly (see PollStatusPill.tsx). */
+.poll-status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 400;
+  padding: 4px 10px 4px 8px; border-radius: 999px; margin-bottom: 10px;
+}
+.poll-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.poll-status-pill.live { background: rgba(255, 45, 85, .1); color: var(--accent); }
+.poll-status-pill.live .poll-status-dot { background: var(--accent); }
+.poll-status-pill.closed { background: #fcfaf5; color: #4f483b; }
+.poll-status-pill.closed .poll-status-dot { background: #4f483b; }
+
+/* Voter avatar row — stacked initials avatars (AvatarStack, reused with
+   alias-based initials/colors from data/polls.ts) + a "N people have
+   voted" line, replacing PollTally's old "N vote(s) so far" text on
+   PollOrganize's live view only (PollTally.hideTotal). */
+.poll-voter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.poll-voter-row .avatar-stack { margin-bottom: 0; }
+.poll-voter-count { font-size: 13px; color: var(--ink-soft); }
+
+/* --- Wrap-up / keepsake --- */
+/* Round 5: replaced the old .poll-winner-strip pill with Figma's solid
+   accent hero card — trophy + winning option thumbnail + name. Figma's own
+   node uses a fixed h-293/py-16/px-24 (node 1182:4706) — reproduced here as
+   a min-height + asymmetric padding so it stays responsive instead of a
+   hard pixel lock; the taller min-height (not the smaller py value alone)
+   is what actually gives the card Figma's more generous vertical breathing
+   room around its (typically shorter-than-293px) real content. */
+.poll-winner-hero {
+  background: var(--accent); border-radius: 8px; max-width: 485px; width: 100%; margin: 0 auto 20px;
+  padding: 16px 24px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 24px; min-height: 293px; box-sizing: border-box;
+}
+.poll-winner-hero-trophy { flex-shrink: 0; }
+.poll-winner-hero-row { display: flex; align-items: center; gap: 24px; }
+/* display:flex + font-size here match every other PollOptionBadge host
+   (.poll-vote-opt-badge, .poll-tally-card-thumb) — without them an
+   emoji-only option (no image_url) renders as an invisible ~16px
+   top-left-aligned glyph in this 100px circle, since PollOptionBadge's
+   emoji branch is a plain <span>{emoji}</span> with no sizing of its own. */
+.poll-winner-hero-thumb {
+  width: 100px; height: 100px; border-radius: 50%; flex-shrink: 0; overflow: hidden; background: rgba(255, 255, 255, .15);
+  display: flex; align-items: center; justify-content: center; font-size: 48px;
+}
+.poll-winner-hero-thumb img { width: 100%; height: 100%; object-fit: cover; }
+/* Figma's text block is items-start (left-aligned) within the row next to
+   the thumbnail — only the trophy above stays centered. Tie state (node
+   1188:1060) reuses this exact row unchanged — same 100px thumb, same
+   text block — just repeated per tied option with no trophy above them. */
+.poll-winner-hero-text { text-align: left; }
+.poll-winner-hero-label { font-size: 20px; font-weight: 500; color: #030302; letter-spacing: -.1px; margin: 0 0 4px; }
+.poll-winner-hero-name { font-size: 40px; font-weight: 500; color: #fff; letter-spacing: -.2px; line-height: 1.15; word-wrap: break-word; }
+
+/* Tie state redesign (Figma node 1197:1531) — one "IT'S A TIE!" badge
+   instead of per-row "Tie N" labels, left-aligned, flat 24px padding, and
+   content-hugging height instead of the win-card's centered 293px min-
+   height. Additive modifier/overrides layered on the base rules above via
+   the extra classes — the single-winner card is untouched. */
+.poll-winner-hero.tie { padding: 24px; min-height: 0; }
+.poll-winner-hero-tie-badge { font-size: 16px; font-weight: 500; color: #000; line-height: 20px; letter-spacing: -.08px; margin: 0; }
+.poll-winner-hero-tie-thumb { width: 68px; height: 68px; }
+.poll-winner-hero-tie-name { font-size: 32px; line-height: 36px; letter-spacing: -.16px; }
+
+/* Voter avatar row + duration, below the hero card — same .board-dot
+   separator convention used elsewhere, plain body font (not DM Mono; see
+   formatDuration's own compact-hours comment). */
+.poll-wrapup-meta { display: flex; align-items: center; gap: 10px; margin: 0 0 20px; flex-wrap: wrap; }
+.poll-wrapup-meta .poll-voter-row { margin-bottom: 0; }
+.poll-wrapup-duration { font-size: 13px; color: var(--ink-soft); }
+
+.poll-wall-count { font-size: 13px; color: #a79f91; margin: -8px 0 12px; }
+
+/* Plain 1px rule between wrap-up sections (avatar/duration -> results,
+   results -> Best of the Wall) — matches Figma's explicit divider lines
+   (node 1182:4723/4743) that this card was missing. */
+.poll-wrapup-divider { height: 1px; background: #ede9e2; margin: 20px 0; }
+
+/* Round 6: moved into the wrap-up's own right column (see
+   PollWrapUp/.poll-organize-layout) and rebuilt as Figma's actual
+   vertical/centered card (icon on top, centered copy, full-width button)
+   instead of the old horizontal flame+text row — that row layout doesn't
+   fit a ~340-517px narrow column without wrapping awkwardly.
+   Round 7: replaced the guessed pink-gradient shell with Figma's real one
+   (node 1182:4768) — plain white, 1px #f0f0f0 border, 12px radius, 16px
+   padding, no shadow — and the BuntingIcon replacing the flame emoji. */
+.poll-gathering-cta {
+  background: #fff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px;
+}
+.poll-gathering-cta-copy { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.poll-gathering-cta-copy h2 { margin: 0; font-size: 20px; font-weight: 500; line-height: 24px; letter-spacing: -.1px; color: #111; }
+.poll-gathering-cta-copy p { margin: 0; font-size: 14px; color: #595959; line-height: 20px; letter-spacing: -.07px; }
+.poll-gathering-cta .primary-btn { margin-top: 0; border-radius: 100px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
