@@ -1,5 +1,10 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/poll-keepsake.tsx": {
+      "includeFiles": "api/package.json"
+    }
+  }
 }
