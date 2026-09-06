@@ -30,8 +30,6 @@
 
 import { ImageResponse } from '@vercel/og';
 
-export const config = { runtime: 'edge' };
-
 // Edge Runtime only actually exposes process.env (for the project's
 // configured Environment Variables) — not the rest of Node's process API —
 // so this declares just that rather than pulling in @types/node wholesale.
