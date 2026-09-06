@@ -1,14 +1,6 @@
 import { activeRsvps } from '../data/gatherings';
-import { fmtDate } from '../lib/constants';
+import { fmtDate, BOARD_AVATAR_COLORS } from '../lib/constants';
 import type { GatheringWithRelations } from '../lib/database.types';
-
-// Rotation for the small overlapping avatar circles on this card — deliberately
-// its own palette, not the app-wide AVATAR_COLORS (see lib/constants.ts, which
-// is intentionally neutral for the rest of the app). This one matches the
-// colorful set from the "Komon board" Figma frames' Avatar Group component,
-// scoped to just this new board card so it doesn't change avatar coloring
-// anywhere else (Detail's RSVP list, etc).
-const BOARD_AVATAR_COLORS = ['#0088ff', '#00c8b3', '#f050f9', '#000000'];
 
 // See public/board/gathering-placeholder.jpg — not supplied yet. Referenced
 // as a CSS background-image (not <img src>) so a missing file falls back to

@@ -1,32 +1,13 @@
 import { supabase } from '../lib/supabase';
-import { AVATAR_COLORS } from '../lib/constants';
+import { BOARD_AVATAR_COLORS } from '../lib/constants';
 import type { AliasPoll, AliasPollOption, AliasPollVote, AliasPollVotePublic, ChartStyle, LinkMeta } from '../lib/database.types';
 
-// --- Alias generation ----------------------------------------------------
-// Word lists and makeAlias() ported verbatim from the reviewed prototype.
-
-const AVATARS = ['🦩', '🦊', '🐙', '🐝', '🦥', '🦔', '🦉', '🐿️', '🦖', '🐢', '🦜', '🐬', '🦄', '🐨', '🦦', '🐧'];
-const ADJ = [
-  'Excited', 'Sneaky', 'Cosmic', 'Velvet', 'Bashful', 'Turbo', 'Lucky', 'Feral',
-  'Cheerful', 'Rogue', 'Dazzling', 'Sleepy', 'Bold', 'Curious', 'Glorious', 'Nimble',
-];
-const NOUN = [
-  'Flamingo', 'Fox', 'Octopus', 'Bee', 'Sloth', 'Hedgehog', 'Owl', 'Squirrel',
-  'Raptor', 'Turtle', 'Parrot', 'Dolphin', 'Unicorn', 'Koala', 'Otter', 'Penguin',
-];
-
-function randOf<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-export interface Alias {
-  avatar: string;
-  name: string;
-}
-
-export function makeAlias(): Alias {
-  return { avatar: randOf(AVATARS), name: `${randOf(ADJ)} ${randOf(NOUN)}` };
-}
+// --- Alias nudge ----------------------------------------------------------
+// Round 5 removed the generated-alias UI (makeAlias/Alias/word lists) — the
+// alias field is now a plain typed input (see PollVote.tsx) with no
+// auto-generated default, so there's nothing left to generate here. The
+// real-name nudge below is unaffected — it never depended on how the alias
+// was produced, only on comparing it against the typed real name.
 
 // Soft nudge only — never blocks voting. Catches the accidental case
 // (typing your real name out of habit), not offensive content, which a
@@ -99,15 +80,17 @@ export function initialsBadge(meta: LinkMeta): InitialsBadge {
 // row (PollOrganize.tsx) so the same person always gets the same initials
 // and color in both places. Deliberately separate from initialsBadge above
 // (link previews): that one hashes by host/name into an hsl() wheel, this
-// one hashes into the app's fixed greyscale AVATAR_COLORS palette — the
-// same palette RsvpPanel.tsx already uses, not a new hue system.
+// one hashes into the colorful BOARD_AVATAR_COLORS palette — an exact match
+// to the Figma Dev Mode file's avatar colors for the wrap-up voter row and
+// message-wall bubbles (originally scoped to BoardGatheringCard's RSVP
+// avatars, see lib/constants.ts), not the app-wide greyscale AVATAR_COLORS.
 export function aliasInitials(name: string): string {
-  const words = (name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
-  return words.map((w) => w.charAt(0).toUpperCase()).join('') || '?';
+  const trimmed = (name || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
 }
 
 export function aliasColor(name: string): string {
-  return AVATAR_COLORS[strHash(name || '') % AVATAR_COLORS.length];
+  return BOARD_AVATAR_COLORS[strHash(name || '') % BOARD_AVATAR_COLORS.length];
 }
 
 export interface LinkPreview {
@@ -185,19 +168,29 @@ export async function uploadPollOptionImage(file: File, organizerId: string): Pr
 
 export interface CreatePollOptionInput {
   label: string;
-  emoji: string | null;
   image_url: string | null;
   link_url: string | null;
   link_meta: LinkMeta | null;
 }
 
+// A badge always renders now (image > link-preview > monogram, no more
+// emoji fallback — see PollOptionBadge.tsx), so every option needs a
+// monogram value regardless of what else it has: first letter of the
+// label, uppercased. '?' only for the pathological case of an empty label.
+export function optionMonogram(label: string): string {
+  const trimmed = (label || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
+}
+
 export interface CreatePollInput {
   organizerId: string;
   title: string;
-  chartStyle: ChartStyle;
   suspenseMode: boolean;
   commentsLive: boolean;
   allowMessages: boolean;
+  // ISO timestamp. Required — the create form has no open-ended option, so
+  // every poll made from here on always sets one (see 0012_poll_close_date.sql).
+  closesAt: string;
   options: CreatePollOptionInput[];
 }
 
@@ -207,10 +200,16 @@ export async function createPoll(input: CreatePollInput): Promise<string> {
     .insert({
       organizer_user_id: input.organizerId,
       title: input.title,
-      chart_style: input.chartStyle,
+      // The chart-style picker was removed from the create form (round 4
+      // simplification) — PollTally now only ever renders the row-card
+      // layout, but the column stays in the schema (no migration for this
+      // — see 0011's own comment), so every new poll still needs a valid
+      // value written on insert.
+      chart_style: 'card' satisfies ChartStyle,
       suspense_mode: input.suspenseMode,
       comments_live: input.commentsLive,
       allow_messages: input.allowMessages,
+      closes_at: input.closesAt,
     })
     .select('id')
     .single();
@@ -221,7 +220,6 @@ export async function createPoll(input: CreatePollInput): Promise<string> {
     poll_id: pollId,
     label: opt.label,
     position,
-    emoji: opt.emoji,
     image_url: opt.image_url,
     link_url: opt.link_url,
     link_meta: opt.link_meta,
@@ -232,10 +230,105 @@ export async function createPoll(input: CreatePollInput): Promise<string> {
   return pollId;
 }
 
+// Cheap existence check (head request, no rows fetched) — used by
+// PollCreate.tsx's edit mode to decide whether options are still
+// editable. This is a client-side convenience only; the real enforcement
+// is the RLS policies in 0011_lock_poll_options_after_votes.sql, which
+// reject any insert/update/delete on alias_poll_options once a vote
+// exists regardless of what this check returns.
+export async function pollHasVotes(pollId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('alias_poll_votes_public')
+    .select('id', { count: 'exact', head: true })
+    .eq('poll_id', pollId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+export interface UpdatePollInput {
+  title: string;
+  // Omitted entirely (not an empty array) when options are locked — the
+  // caller decides via pollHasVotes, and this function never sends a
+  // no-op options write in that case.
+  options?: CreatePollOptionInput[];
+  // ISO timestamp. Present only when the organizer actively picked a new
+  // duration in edit mode — omitted (not sent at all) when they left the
+  // close date unchanged, so this never forces a no-op closes_at write.
+  closesAt?: string;
+}
+
+// Question is always updatable; options are wholesale replaced (delete +
+// reinsert) only when input.options is provided, matching createPoll's
+// own insert-rows-with-position shape. Safe even if the client-side
+// pollHasVotes check were somehow stale, since RLS itself rejects both the
+// delete and the insert on alias_poll_options once any vote exists — see
+// 0011_lock_poll_options_after_votes.sql.
+export async function updatePoll(pollId: string, input: UpdatePollInput): Promise<void> {
+  const pollPatch: { title: string; closes_at?: string } = { title: input.title };
+  if (input.closesAt) pollPatch.closes_at = input.closesAt;
+  const { error: pollError } = await supabase.from('alias_polls').update(pollPatch).eq('id', pollId);
+  if (pollError) throw pollError;
+  if (!input.options) return;
+
+  const { error: deleteError } = await supabase.from('alias_poll_options').delete().eq('poll_id', pollId);
+  if (deleteError) throw deleteError;
+  const rows = input.options.map((opt, position) => ({ poll_id: pollId, position, ...opt }));
+  const { error: insertError } = await supabase.from('alias_poll_options').insert(rows);
+  if (insertError) throw insertError;
+}
+
+// Appends a short, concrete reason to the generic "Something went wrong"
+// toast whenever the thrown error carries one -- Postgres/PostgREST errors
+// (RLS violations, check-constraint failures) and Supabase Storage errors
+// (bucket/policy issues -- the common suspect whenever an option image is
+// attached) both expose a `message` string, and so does a plain JS Error
+// (e.g. createImageBitmap failing on an unsupported file). Falls back to
+// the bare generic phrasing when there's nothing useful to add, rather
+// than ever showing "undefined" or a raw stack trace to the organizer.
+// The full error always still goes to console.error at the call site --
+// this is only the short, human-facing supplement.
+export function pollErrorToast(verb: 'creating' | 'saving', err: unknown): string {
+  const generic = `Something went wrong ${verb} the poll`;
+  const message = err && typeof err === 'object' && 'message' in err ? (err as { message?: unknown }).message : null;
+  if (typeof message !== 'string' || !message.trim()) return generic;
+  const trimmed = message.trim();
+  const reason = trimmed.length > 80 ? `${trimmed.slice(0, 77)}...` : trimmed;
+  return `${generic} (${reason})`;
+}
+
+// True once a poll's closes_at has passed, regardless of what its stored
+// `status` currently says — the source of truth for whether the lazy
+// close-on-read below should run.
+function isExpired(poll: Pick<AliasPoll, 'status' | 'closes_at'>): boolean {
+  return poll.status === 'open' && Boolean(poll.closes_at) && new Date(poll.closes_at!).getTime() <= Date.now();
+}
+
+// Lazy close-on-read: every caller of fetchPoll (PollOrganize.tsx,
+// PollVote.tsx) gets this for free. If the poll's closes_at has passed but
+// status still says 'open' (nobody's visited since expiry), flip it to
+// 'closed' here via the narrowly-scoped alias_polls_auto_close_on_expiry
+// RLS policy (0012_poll_close_date.sql), which permits exactly this
+// transition for any caller, organizer or anonymous guest. If the write
+// fails for some reason, fall back to overriding status/closed_at
+// in-memory so this render is at least internally consistent.
 export async function fetchPoll(id: string): Promise<AliasPoll | null> {
   const { data, error } = await supabase.from('alias_polls').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
-  return data as AliasPoll | null;
+  const poll = data as AliasPoll | null;
+  if (!poll || !isExpired(poll)) return poll;
+
+  const closedAt = new Date().toISOString();
+  const { data: updated, error: updateError } = await supabase
+    .from('alias_polls')
+    .update({ status: 'closed', closed_at: closedAt })
+    .eq('id', id)
+    .select('*')
+    .maybeSingle();
+  if (updateError || !updated) {
+    console.error(updateError);
+    return { ...poll, status: 'closed', closed_at: closedAt };
+  }
+  return updated as AliasPoll;
 }
 
 export async function fetchPollOptions(pollId: string): Promise<AliasPollOption[]> {
@@ -307,10 +400,6 @@ export function wallUnlocked(poll: Pick<AliasPoll, 'comments_live' | 'status'>):
   return poll.comments_live || poll.status === 'closed';
 }
 
-export function optionHasBadge(option: Pick<AliasPollOption, 'image_url' | 'link_url' | 'emoji'>): boolean {
-  return Boolean(option.image_url || option.link_url || option.emoji);
-}
-
 export interface OptionCount {
   option: AliasPollOption;
   count: number;
@@ -360,7 +449,28 @@ export async function fetchBoardPolls(organizerId: string): Promise<BoardPoll[]>
     .eq('status', 'open')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  const list = (polls ?? []) as AliasPoll[];
+  let list = (polls ?? []) as AliasPoll[];
+
+  // Bulk query, not per-poll fetchPoll() — an expired-but-not-yet-visited
+  // poll would otherwise still show as open on the Board until someone
+  // loads its organize/vote page. The organizer's own existing
+  // alias_polls_update_own policy already permits this (no new RLS
+  // needed), so this can go through a normal update rather than the
+  // narrower auto-close-on-expiry policy fetchPoll uses for anonymous
+  // guests. Expired polls are closed here AND filtered out of the
+  // returned list so the Board reflects reality immediately.
+  const expiredIds = list.filter((p) => isExpired(p)).map((p) => p.id);
+  if (expiredIds.length) {
+    const closedAt = new Date().toISOString();
+    const { error: closeError } = await supabase
+      .from('alias_polls')
+      .update({ status: 'closed', closed_at: closedAt })
+      .in('id', expiredIds);
+    if (closeError) console.error(closeError);
+    const expiredSet = new Set(expiredIds);
+    list = list.filter((p) => !expiredSet.has(p.id));
+  }
+
   if (!list.length) return [];
   // Single batched count query, not N+1 — alias_poll_votes_public is the
   // same guest-safe view PollWall/PollVote already read from.
@@ -396,7 +506,29 @@ export function formatDuration(startIso: string, endIso: string): string {
   const minutes = Math.round(ms / 60000);
   if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'}`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  // Compact form ("12hr"), matching Figma's wrap-up "12hr duration" — the
+  // day/minute branches stay full words since Figma only confirmed hours.
+  if (hours < 24) return `${hours}hr`;
   const days = Math.round(hours / 24);
   return `${days} day${days === 1 ? '' : 's'}`;
+}
+
+// Core countdown value shared by every "closes in X" display (share card,
+// organizer live view, Board row, guest post-vote copy) — each call site
+// wraps this in its own exact sentence rather than duplicating the date
+// math. Deliberately plain body-font content everywhere it's rendered
+// (never DM Mono) — a dynamic numeric string like this is exactly the kind
+// of content that's tripped the DM-Mono-slashed-zero bug in prior rounds.
+// Null closes_at (pre-migration polls only — every poll created after
+// 0012_poll_close_date.sql always sets one) reads as "never expires".
+export function formatCloseCountdown(closesAt: string | null): string {
+  if (!closesAt) return 'never expires';
+  const ms = new Date(closesAt).getTime() - Date.now();
+  if (ms <= 0) return 'closed';
+  const minutes = Math.round(ms / 60000);
+  if (minutes < 60) return 'closes soon';
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `closes in ${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.round(hours / 24);
+  return `closes in ${days} day${days === 1 ? '' : 's'}`;
 }

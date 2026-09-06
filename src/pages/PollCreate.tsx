@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Switch } from '@base-ui/react/switch';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -7,19 +7,24 @@ import { BackLink } from '../components/BackLink';
 import {
   createPoll,
   fetchLinkPreview,
+  fetchPoll,
+  fetchPollOptions,
+  formatCloseCountdown,
   initialsBadge,
   OptionImageTooLargeError,
-  optionHasBadge,
+  optionMonogram,
   parseLinkMeta,
+  pollErrorToast,
+  pollHasVotes,
+  updatePoll,
   uploadPollOptionImage,
   type CreatePollOptionInput,
 } from '../data/polls';
-import type { ChartStyle, LinkMeta } from '../lib/database.types';
+import type { AliasPollOption, LinkMeta } from '../lib/database.types';
 
 interface DraftOption {
   key: string;
   label: string;
-  emoji: string;
   imageFile: File | null;
   imagePreview: string | null;
   linkUrl: string;
@@ -28,52 +33,123 @@ interface DraftOption {
 }
 
 let optKeySeq = 0;
-function newOption(emoji: string): DraftOption {
+function newOption(): DraftOption {
   optKeySeq += 1;
-  return { key: `opt${optKeySeq}`, label: '', emoji, imageFile: null, imagePreview: null, linkUrl: '', linkMeta: null, linkChecking: false };
+  return { key: `opt${optKeySeq}`, label: '', imageFile: null, imagePreview: null, linkUrl: '', linkMeta: null, linkChecking: false };
 }
 
-const EMOJI_ROTATION = ['🎉', '✨', '🔥', '⭐', '🍀', '🎈'];
-// A plausible, always-summing-to-100 spread so the style previews below
-// look like a real result rather than an empty chart — ported verbatim
-// from the reviewed prototype's fakeDistribution.
-const FAKE_BASE = [58, 42, 30, 22, 16, 12];
-function fakeDistribution(n: number): number[] {
-  if (n <= 0) return [];
-  const slice = FAKE_BASE.slice(0, n);
-  while (slice.length < n) slice.push(10);
-  const sum = slice.reduce((a, b) => a + b, 0);
-  return slice.map((v) => Math.round((v / sum) * 100));
+// Maps a persisted option (edit mode's initial load) into the same draft
+// shape the create form already edits — imagePreview holds the real
+// image_url string here (not a fresh blob: URL), and imageFile stays null
+// since nothing's been freshly picked; resolveOptions below treats "no
+// imageFile but an imagePreview" as "keep this already-uploaded image" for
+// exactly this reason.
+function draftFromOption(o: AliasPollOption): DraftOption {
+  optKeySeq += 1;
+  return {
+    key: `opt${optKeySeq}`,
+    label: o.label,
+    imageFile: null,
+    imagePreview: o.image_url,
+    linkUrl: o.link_url || '',
+    linkMeta: o.link_meta,
+    linkChecking: false,
+  };
 }
+
+// No duration-picker Figma frame exists for this — built from Komon's
+// existing .radio-group/.radio-chip pattern (Create.tsx's Split Method /
+// Pay Method pickers) instead. 4 presets; default 7 days in create mode.
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+const DURATION_PRESETS: [number, string][] = [
+  [12 * HOUR, '12 hours'],
+  [1 * DAY, '1 day'],
+  [3 * DAY, '3 days'],
+  [7 * DAY, '7 days'],
+];
 
 // Figma-less feature (built from the reviewed prototype, not a Figma pull)
-// — Alias Polls' Create screen. Gated like Create.tsx's own direct-URL
-// fallback: redirects straight to /signin rather than an intermediate
-// screen, no separate entry-point button exists yet (out of this task's
-// scope — only the three routes were asked for).
+// — Alias Polls' Create screen, and (round 4) also its Edit screen: one
+// component, dual mode via the optional :id route param, rather than a
+// second parallel ~500-line file the way Create.tsx/Edit.tsx duplicate
+// each other for gatherings — that duplication is that pair's own actual
+// precedent, not something worth copying here.
+//
+// Round 4 also rebuilt this into Create.tsx's own "form + live preview"
+// two-column pattern (.create-layout / .preview-wrap) instead of the
+// poll-specific single-column stack this used to be, and removed the
+// chart-style picker (Row card vs Columns) entirely — PollTally now only
+// ever renders one layout, so there's nothing left to choose here.
 export function PollCreate() {
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
   const navigate = useNavigate();
   const { userId, ready, isPersistent } = useAuth();
   const toast = useToast();
 
   useEffect(() => {
-    if (ready && !isPersistent) navigate('/signin?next=/poll/new', { replace: true });
-  }, [ready, isPersistent, navigate]);
+    if (ready && !isPersistent) {
+      const next = id ? `/poll/${id}/edit` : '/poll/new';
+      navigate(`/signin?next=${encodeURIComponent(next)}`, { replace: true });
+    }
+  }, [ready, isPersistent, id, navigate]);
 
   const [title, setTitle] = useState('');
-  const [options, setOptions] = useState<DraftOption[]>([newOption('💙'), newOption('💗')]);
-  const [chartStyle, setChartStyle] = useState<ChartStyle>('card');
+  const [options, setOptions] = useState<DraftOption[]>([newOption(), newOption()]);
   const [allowMessages, setAllowMessages] = useState(true);
   const [suspenseMode, setSuspenseMode] = useState(true);
   const [commentsLive, setCommentsLive] = useState(true);
+  const [durationMs, setDurationMs] = useState(7 * DAY);
   const [submitting, setSubmitting] = useState(false);
+
+  // --- Edit mode: load the existing poll + options + vote-lock state ---
+  const [editOrganizerId, setEditOrganizerId] = useState<string | null>(null);
+  const [editNotFound, setEditNotFound] = useState(false);
+  const [editLoading, setEditLoading] = useState(isEditMode);
+  const [optionsLocked, setOptionsLocked] = useState(false);
+  // The poll's current closes_at, for the read-only "currently closes in…"
+  // context line. selectedDurationMs stays null ("unchanged") unless the
+  // organizer actively clicks a preset — there's no clean way to map an
+  // arbitrary remaining duration back onto one of the 4 fixed presets, so
+  // none is pre-selected.
+  const [currentClosesAt, setCurrentClosesAt] = useState<string | null>(null);
+  const [selectedDurationMs, setSelectedDurationMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    Promise.all([fetchPoll(id), fetchPollOptions(id), pollHasVotes(id)])
+      .then(([p, opts, hasVotes]) => {
+        if (!mounted) return;
+        if (!p) {
+          setEditNotFound(true);
+          return;
+        }
+        setEditOrganizerId(p.organizer_user_id);
+        setTitle(p.title);
+        setOptions(opts.map(draftFromOption));
+        setOptionsLocked(hasVotes);
+        setCurrentClosesAt(p.closes_at);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (mounted) setEditNotFound(true);
+      })
+      .finally(() => {
+        if (mounted) setEditLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   function updateOption(key: string, patch: Partial<DraftOption>) {
     setOptions((prev) => prev.map((o) => (o.key === key ? { ...o, ...patch } : o)));
   }
 
   function addOption() {
-    setOptions((prev) => [...prev, newOption(EMOJI_ROTATION[prev.length % EMOJI_ROTATION.length])]);
+    setOptions((prev) => [...prev, newOption()]);
   }
 
   function removeOption(key: string) {
@@ -119,15 +195,33 @@ export function PollCreate() {
     }, 500);
   }
 
-  async function handleCreate() {
+  // Shared by both create and save-changes: uploads any freshly-picked
+  // image files and resolves each draft option into the shape the server
+  // expects. For a draft carrying no imageFile but an existing
+  // imagePreview (edit mode's initial load, before any change), that
+  // imagePreview *is* the already-uploaded image_url — passed through
+  // as-is rather than re-uploaded.
+  async function resolveOptions(drafts: DraftOption[]): Promise<CreatePollOptionInput[]> {
+    const resolved: CreatePollOptionInput[] = [];
+    for (const opt of drafts) {
+      let imageUrl: string | null = opt.imageFile ? null : opt.imagePreview;
+      if (opt.imageFile) {
+        imageUrl = await uploadPollOptionImage(opt.imageFile, userId!);
+      }
+      resolved.push({
+        label: opt.label.trim(),
+        image_url: imageUrl,
+        link_url: opt.linkUrl.trim() || null,
+        link_meta: opt.linkUrl.trim() ? opt.linkMeta : null,
+      });
+    }
+    return resolved;
+  }
+
+  async function handleSubmit() {
     const cleanTitle = title.trim();
-    const cleanOptions = options.filter((o) => o.label.trim().length);
     if (!cleanTitle) {
       toast('Add a question first');
-      return;
-    }
-    if (cleanOptions.length < 2) {
-      toast('Add at least two options first');
       return;
     }
     if (!userId) {
@@ -135,51 +229,90 @@ export function PollCreate() {
       return;
     }
 
+    if (isEditMode) {
+      if (!id) return;
+      let optionsInput: CreatePollOptionInput[] | undefined;
+      if (!optionsLocked) {
+        const cleanOptions = options.filter((o) => o.label.trim().length);
+        if (cleanOptions.length < 2) {
+          toast('Add at least two options first');
+          return;
+        }
+        setSubmitting(true);
+        try {
+          optionsInput = await resolveOptions(cleanOptions);
+        } catch (err) {
+          if (err instanceof OptionImageTooLargeError) {
+            toast(err.message);
+            setSubmitting(false);
+            return;
+          }
+          console.error(err);
+          toast(pollErrorToast('saving', err));
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        setSubmitting(true);
+      }
+      try {
+        await updatePoll(id, {
+          title: cleanTitle,
+          options: optionsInput,
+          // Omitted entirely (not just re-sent) when the organizer left
+          // duration untouched — updatePoll only writes closes_at when
+          // this key is present, so the existing value stays as-is.
+          ...(selectedDurationMs != null ? { closesAt: new Date(Date.now() + selectedDurationMs).toISOString() } : {}),
+        });
+        navigate(`/poll/${id}/organize`);
+      } catch (err) {
+        console.error(err);
+        toast(pollErrorToast('saving', err));
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    const cleanOptions = options.filter((o) => o.label.trim().length);
+    if (cleanOptions.length < 2) {
+      toast('Add at least two options first');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const resolvedOptions: CreatePollOptionInput[] = [];
-      for (const opt of cleanOptions) {
-        let imageUrl: string | null = null;
-        if (opt.imageFile) {
-          try {
-            imageUrl = await uploadPollOptionImage(opt.imageFile, userId);
-          } catch (err) {
-            if (err instanceof OptionImageTooLargeError) {
-              toast(err.message);
-              setSubmitting(false);
-              return;
-            }
-            throw err;
-          }
+      let resolvedOptions: CreatePollOptionInput[];
+      try {
+        resolvedOptions = await resolveOptions(cleanOptions);
+      } catch (err) {
+        if (err instanceof OptionImageTooLargeError) {
+          toast(err.message);
+          setSubmitting(false);
+          return;
         }
-        resolvedOptions.push({
-          label: opt.label.trim(),
-          emoji: imageUrl || opt.linkUrl.trim() ? null : opt.emoji || null,
-          image_url: imageUrl,
-          link_url: opt.linkUrl.trim() || null,
-          link_meta: opt.linkUrl.trim() ? opt.linkMeta : null,
-        });
+        throw err;
       }
 
       const pollId = await createPoll({
         organizerId: userId,
         title: cleanTitle,
-        chartStyle,
         suspenseMode,
         commentsLive,
         allowMessages,
+        closesAt: new Date(Date.now() + durationMs).toISOString(),
         options: resolvedOptions,
       });
-      navigate(`/poll/${pollId}/organize?created=1`);
+      navigate(`/poll/${pollId}/created`);
     } catch (err) {
       console.error(err);
-      toast('Something went wrong creating the poll');
+      toast(pollErrorToast('creating', err));
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (!ready || !isPersistent) {
+  if (!ready || !isPersistent || (isEditMode && editLoading)) {
     return (
       <div className="wrap">
         <p className="lede">Loading…</p>
@@ -187,180 +320,243 @@ export function PollCreate() {
     );
   }
 
-  const pcts = fakeDistribution(options.filter((o) => o.label.trim()).length || options.length);
-  const previewOptions = options.filter((o) => o.label.trim()).length ? options.filter((o) => o.label.trim()) : options;
+  if (isEditMode && editNotFound) {
+    return (
+      <div className="wrap">
+        <BackLink label="Board" onClick={() => navigate('/')} />
+        <p className="lede">Poll not found.</p>
+      </div>
+    );
+  }
+
+  if (isEditMode && editOrganizerId !== null && editOrganizerId !== userId) {
+    return (
+      <div className="wrap">
+        <BackLink label="Poll" onClick={() => navigate(`/poll/${id}/organize`)} />
+        <p className="lede">Only the organizer can edit this poll.</p>
+      </div>
+    );
+  }
+
+  // Mirrors Create.tsx's own "always show something" preview convention:
+  // options with an empty label are skipped (same filter handleSubmit's
+  // own cleanOptions applies), but if every option is still empty (the
+  // common case right after landing on this page) the raw draft list is
+  // shown instead so the preview isn't blank while someone's still typing.
+  const nonEmptyOptions = options.filter((o) => o.label.trim().length);
+  const previewOptions = nonEmptyOptions.length ? nonEmptyOptions : options;
 
   return (
-    <div className="wrap">
-      <BackLink label="New poll" onClick={() => navigate('/')} />
-      <div className="panel poll-create-panel poll-page-panel">
-        <h1>Set up a poll</h1>
-        <p className="lede">
-          No group chat, no shared contacts. Anyone with the link can vote under an alias — you're the only one who
-          ever sees a real name.
-        </p>
+    <div className="poll-create-page">
+      <div className="wrap">
+        <div className="create-layout">
+          <div>
+            <BackLink
+              label={isEditMode ? 'Poll' : 'New poll'}
+              onClick={() => navigate(isEditMode ? `/poll/${id}/organize` : '/')}
+            />
+            <h1>{isEditMode ? 'Edit poll' : 'Set up a poll'}</h1>
+            {!isEditMode && (
+              <p className="lede">
+                No group chat, no shared contacts. Anyone with the link can vote under an alias — you're the only one who
+                ever sees a real name.
+              </p>
+            )}
 
-        <div className="field">
-          <label>Question</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Boy or girl?" />
-        </div>
+            <div className="field">
+              <label>Question</label>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Boy or girl?" />
+            </div>
 
-        <div className="field">
-          <label>Options</label>
-          <p className="field-hint">
-            Add an emoji, image, or GIF to each — it rides the bar on the results chart
-          </p>
-        </div>
+            <div className="field">
+              <label>Options</label>
+              {!optionsLocked && (
+                <p className="field-hint">
+                  Add an image or GIF to each — it rides the bar on the results chart
+                </p>
+              )}
+            </div>
 
-        {options.map((opt) => (
-          <div className="poll-opt-block" key={opt.key}>
-            <div className="poll-opt-row">
-              <div className="poll-opt-avatar-wrap">
-                <button
-                  type="button"
-                  className={`poll-opt-avatar-btn${opt.imagePreview || opt.linkMeta ? ' has-image' : ''}`}
-                  onClick={() => document.getElementById(`poll-opt-file-${opt.key}`)?.click()}
-                  title={opt.imagePreview ? 'Replace image or GIF' : 'Add an image or GIF'}
-                >
-                  {opt.imagePreview ? (
-                    <img src={opt.imagePreview} alt="" />
-                  ) : opt.linkMeta ? (
-                    opt.linkMeta.imageUrl ? (
-                      <img src={opt.linkMeta.imageUrl} alt="" />
-                    ) : (
-                      <PollInitialsBadge meta={opt.linkMeta} />
-                    )
-                  ) : (
-                    '📷'
-                  )}
+            {optionsLocked ? (
+              <div>
+                <p className="mode-note">Options are locked once voting starts.</p>
+                <ul className="item-breakdown">
+                  {options.map((opt) => (
+                    <li key={opt.key}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="poll-locked-opt-thumb">{optionBadgeContent(opt)}</span>
+                        {opt.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <>
+                {options.map((opt) => (
+                  <div className="poll-opt-block" key={opt.key}>
+                    <div className="poll-opt-row">
+                      <div className="poll-opt-avatar-wrap">
+                        <button
+                          type="button"
+                          className={`poll-opt-avatar-btn${opt.imagePreview || opt.linkMeta ? ' has-image' : ''}`}
+                          onClick={() => document.getElementById(`poll-opt-file-${opt.key}`)?.click()}
+                          title={opt.imagePreview ? 'Replace image or GIF' : 'Add an image or GIF'}
+                        >
+                          {opt.imagePreview ? (
+                            <img src={opt.imagePreview} alt="" />
+                          ) : opt.linkMeta ? (
+                            opt.linkMeta.imageUrl ? (
+                              <img src={opt.linkMeta.imageUrl} alt="" />
+                            ) : (
+                              <PollInitialsBadge meta={opt.linkMeta} />
+                            )
+                          ) : (
+                            '📷'
+                          )}
+                        </button>
+                        <input
+                          id={`poll-opt-file-${opt.key}`}
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(e) => handleImageChange(opt.key, e.target.files?.[0] ?? null)}
+                        />
+                        {opt.imagePreview && (
+                          <button
+                            type="button"
+                            className="poll-opt-avatar-remove"
+                            onClick={() => removeImage(opt.key)}
+                            title="Remove image"
+                            aria-label="Remove image"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        className="poll-opt-label-input"
+                        value={opt.label}
+                        onChange={(e) => updateOption(opt.key, { label: e.target.value })}
+                        placeholder="Option label"
+                      />
+                      {options.length > 2 && (
+                        <button type="button" className="poll-opt-remove" onClick={() => removeOption(opt.key)} aria-label="Remove option">
+                          −
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="poll-opt-link-row">
+                      <div className="poll-opt-link-field">
+                        <span className="poll-opt-link-icon" aria-hidden="true">
+                          <LinkIcon />
+                        </span>
+                        <input
+                          type="text"
+                          className="poll-opt-link-input"
+                          placeholder="Or paste a link — restaurant site, Google Maps…"
+                          value={opt.linkUrl}
+                          onChange={(e) => handleLinkChange(opt.key, e.target.value)}
+                        />
+                      </div>
+                      <span className={`poll-opt-link-status${opt.linkMeta ? '' : ' bad'}`}>
+                        {!opt.linkUrl ? '' : opt.linkChecking ? 'Checking…' : opt.linkMeta ? `✓ ${opt.linkMeta.host}` : "That doesn't look like a full link yet"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <button type="button" className="poll-add-opt" onClick={addOption}>
+                  + Add option
                 </button>
-                <input
-                  id={`poll-opt-file-${opt.key}`}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => handleImageChange(opt.key, e.target.files?.[0] ?? null)}
-                />
-                {opt.imagePreview && (
+              </>
+            )}
+
+            <div className="field">
+              <label>Poll closes in</label>
+              {isEditMode ? (
+                <p className="field-hint">Currently {formatCloseCountdown(currentClosesAt)}</p>
+              ) : (
+                <p className="field-hint">Voting stops automatically once this passes</p>
+              )}
+              <div className="radio-group">
+                {DURATION_PRESETS.map(([ms, label]) => (
                   <button
+                    key={ms}
                     type="button"
-                    className="poll-opt-avatar-remove"
-                    onClick={() => removeImage(opt.key)}
-                    title="Remove image, use emoji instead"
-                    aria-label="Remove image"
+                    className={`radio-chip${(isEditMode ? selectedDurationMs : durationMs) === ms ? ' active' : ''}`}
+                    onClick={() => (isEditMode ? setSelectedDurationMs(ms) : setDurationMs(ms))}
                   >
-                    ×
+                    {label}
                   </button>
-                )}
+                ))}
               </div>
-
-              {/* A picture (uploaded or link-derived) always wins over the
-                  emoji, so the field is redundant once one is set — hidden
-                  rather than left sitting there doing nothing. */}
-              {!opt.imagePreview && !opt.linkMeta && (
-                <input
-                  type="text"
-                  className="poll-opt-emoji-input"
-                  maxLength={4}
-                  placeholder="🙂"
-                  value={opt.emoji}
-                  onChange={(e) => updateOption(opt.key, { emoji: e.target.value })}
-                  title="Emoji — used when there's no image or link"
-                />
-              )}
-
-              <input
-                type="text"
-                className="poll-opt-label-input"
-                value={opt.label}
-                onChange={(e) => updateOption(opt.key, { label: e.target.value })}
-                placeholder="Option label"
-              />
-              {options.length > 2 && (
-                <button type="button" className="poll-opt-remove" onClick={() => removeOption(opt.key)} aria-label="Remove option">
-                  −
-                </button>
-              )}
             </div>
 
-            <div className="poll-opt-link-row">
-              <div className="poll-opt-link-field">
-                <span className="poll-opt-link-icon" aria-hidden="true">
-                  <LinkIcon />
-                </span>
-                <input
-                  type="text"
-                  className="poll-opt-link-input"
-                  placeholder="Or paste a link — restaurant site, Google Maps…"
-                  value={opt.linkUrl}
-                  onChange={(e) => handleLinkChange(opt.key, e.target.value)}
+            {!isEditMode && (
+              <div className="toggle-group">
+                <PollToggleRow
+                  id="allowMsg"
+                  label="Let voters attach a message"
+                  hint={'Short note next to their vote — "Team Girl! 💗" — shown under their alias, never their name.'}
+                  checked={allowMessages}
+                  onChange={setAllowMessages}
+                />
+                <div className="toggle-row">
+                  <div>
+                    <div className="tlabel">Ask for a name before voting</div>
+                    <div className="tsub">Stops repeat votes and lets you know who's who. Only you ever see it.</div>
+                  </div>
+                  <Switch.Root checked disabled nativeButton render={<button type="button" />} className="switch on" aria-label="Ask for a name before voting (always on)" />
+                </div>
+                <PollToggleRow
+                  id="suspenseMode"
+                  label="Hide results until you reveal them"
+                  hint="Guests watch votes roll in but can't see the breakdown — you trigger the reveal moment when everyone's ready."
+                  checked={suspenseMode}
+                  onChange={setSuspenseMode}
+                />
+                <PollToggleRow
+                  id="commentsLive"
+                  label="Show comments & activity live"
+                  hint="Guests watch the message wall fill up as people vote. Turn off to reveal it all at once when you close the poll."
+                  checked={commentsLive}
+                  onChange={setCommentsLive}
                 />
               </div>
-              <span className={`poll-opt-link-status${opt.linkMeta ? '' : ' bad'}`}>
-                {!opt.linkUrl ? '' : opt.linkChecking ? 'Checking…' : opt.linkMeta ? `✓ ${opt.linkMeta.host}` : "That doesn't look like a full link yet"}
-              </span>
-            </div>
-          </div>
-        ))}
-        <button type="button" className="poll-add-opt" onClick={addOption}>
-          + Add option
-        </button>
+            )}
 
-        <div className="field">
-          <label>Results chart style</label>
-          <p className="field-hint">
-            Preview uses your options above — pick whichever reads better.
-          </p>
-          <div className="poll-style-grid">
-            <button type="button" className={`poll-style-card${chartStyle === 'card' ? ' active' : ''}`} onClick={() => setChartStyle('card')}>
-              <div className="poll-style-thumb">
-                <PollMiniCardPreview options={previewOptions} pcts={pcts} />
-              </div>
-              <span className="poll-style-label">Row card</span>
-            </button>
-            <button type="button" className={`poll-style-card${chartStyle === 'columns' ? ' active' : ''}`} onClick={() => setChartStyle('columns')}>
-              <div className="poll-style-thumb">
-                <PollMiniColumnsPreview options={previewOptions} pcts={pcts} />
-              </div>
-              <span className="poll-style-label">Columns</span>
+            <button className="primary-btn" style={{ marginTop: 22 }} onClick={handleSubmit} disabled={submitting}>
+              {submitting ? (isEditMode ? 'Saving…' : 'Creating…') : isEditMode ? 'Save changes' : 'Create poll'}
             </button>
           </div>
-        </div>
 
-        <div className="toggle-group">
-          <PollToggleRow
-            id="allowMsg"
-            label="Let voters attach a message"
-            hint={'Short note next to their vote — "Team Girl! 💗" — shown under their alias, never their name.'}
-            checked={allowMessages}
-            onChange={setAllowMessages}
-          />
-          <div className="toggle-row">
-            <div>
-              <div className="tlabel">Ask for a name before voting</div>
-              <div className="tsub">Stops repeat votes and lets you know who's who. Only you ever see it.</div>
+          {/* Guest-facing mockup, not a results chart — no percentage bars
+              or vote counts, since nobody's voted yet at create time (and
+              in edit mode this just reflects whatever's currently in the
+              form, same as create — no special-casing needed here). Own
+              shell class (.poll-preview-card) rather than reusing
+              .create-preview-card directly: same card-shell values
+              (background/border/radius/padding/shadow) for visual
+              consistency with Create.tsx, but its own inner structure
+              (question + option rows) since a poll has no eyebrow/meta the
+              way a gathering does. */}
+          <div className="preview-wrap">
+            <div className="poll-preview-card">
+              <div className="poll-preview-question">{title || 'Your question'}</div>
+              <div className="poll-preview-options">
+                {previewOptions.map((opt) => (
+                  <div className="poll-preview-option-row" key={opt.key}>
+                    <span className="poll-preview-option-thumb">{optionBadgeContent(opt)}</span>
+                    <span className="poll-preview-option-label">{opt.label.trim() || 'Option label'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <Switch.Root checked disabled nativeButton render={<button type="button" />} className="switch on" aria-label="Ask for a name before voting (always on)" />
           </div>
-          <PollToggleRow
-            id="suspenseMode"
-            label="Hide results until you reveal them"
-            hint="Guests watch votes roll in but can't see the breakdown — you trigger the reveal moment when everyone's ready."
-            checked={suspenseMode}
-            onChange={setSuspenseMode}
-          />
-          <PollToggleRow
-            id="commentsLive"
-            label="Show comments & activity live"
-            hint="Guests watch the message wall fill up as people vote. Turn off to reveal it all at once when you close the poll."
-            checked={commentsLive}
-            onChange={setCommentsLive}
-          />
         </div>
-
-        <button className="primary-btn" style={{ marginTop: 22 }} onClick={handleCreate} disabled={submitting}>
-          {submitting ? 'Creating…' : 'Create poll'}
-        </button>
       </div>
     </div>
   );
@@ -420,39 +616,22 @@ function PollInitialsBadge({ meta }: { meta: LinkMeta }) {
   );
 }
 
+// Renders a *draft* option's thumbnail (local blob preview / not-yet-
+// uploaded state, or edit mode's already-persisted image_url) — the live
+// preview's and locked-options list's own parallel to PollOptionBadge,
+// which renders a *persisted* AliasPollOption instead. Same
+// image > link-preview > monogram priority as that component — no emoji
+// fallback, so this always returns something to render.
 function optionBadgeContent(opt: DraftOption) {
   if (opt.imagePreview) return <img src={opt.imagePreview} alt="" />;
   if (opt.linkMeta) return opt.linkMeta.imageUrl ? <img src={opt.linkMeta.imageUrl} alt="" /> : <PollInitialsBadge meta={opt.linkMeta} />;
-  if (opt.emoji) return opt.emoji;
-  return null;
-}
-
-function PollMiniCardPreview({ options, pcts }: { options: DraftOption[]; pcts: number[] }) {
+  // Reuses .poll-initials-badge's existing full-fill centering (same class
+  // PollInitialsBadge itself renders into) rather than a bare string, so
+  // this draft preview actually matches PollOptionBadge's real black-bg/
+  // white-text monogram once the option is persisted.
   return (
-    <>
-      {options.map((opt, i) => (
-        <div className="poll-mini-card-row" key={opt.key}>
-          <span className="poll-mini-thumb">{optionHasBadge({ image_url: opt.imagePreview, link_url: opt.linkMeta ? opt.linkUrl : null, emoji: opt.emoji }) ? optionBadgeContent(opt) : '·'}</span>
-          <div className="poll-mini-bar-track">
-            <div className="poll-mini-bar" style={{ width: `${pcts[i] || 0}%` }} />
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-function PollMiniColumnsPreview({ options, pcts }: { options: DraftOption[]; pcts: number[] }) {
-  return (
-    <div className="poll-mini-cols">
-      {options.map((opt, i) => (
-        <div className="poll-mini-col" key={opt.key}>
-          <span className="poll-mini-thumb sm">{optionHasBadge({ image_url: opt.imagePreview, link_url: opt.linkMeta ? opt.linkUrl : null, emoji: opt.emoji }) ? optionBadgeContent(opt) : '·'}</span>
-          <div className="poll-mini-col-track">
-            <div className="poll-mini-col-fill" style={{ height: `${pcts[i] || 0}%` }} />
-          </div>
-        </div>
-      ))}
-    </div>
+    <span className="poll-initials-badge" style={{ background: '#000', color: '#fff' }}>
+      {optionMonogram(opt.label)}
+    </span>
   );
 }

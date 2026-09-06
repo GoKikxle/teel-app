@@ -1,6 +1,6 @@
 import { fmtDate } from '../lib/constants';
 import { PollStatusPill } from './polls/PollStatusPill';
-import type { BoardPoll } from '../data/polls';
+import { formatCloseCountdown, type BoardPoll } from '../data/polls';
 
 // Follows BoardGatheringCard/BoardBillCard's exact shape (board-card >
 // board-card-body > board-card-title + board-card-meta > meta-rows). Polls
@@ -25,6 +25,8 @@ export function BoardPollCard({ poll, onClick }: { poll: BoardPoll; onClick: () 
               shared .board-card-meta-row class other cards still rely on. */}
           <div className="board-card-meta-row" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {poll.voteCount} vote{poll.voteCount === 1 ? '' : 's'}
+            <span className="board-dot" />
+            {formatCloseCountdown(poll.closes_at).replace(/^./, (c) => c.toUpperCase())}
           </div>
         </div>
       </div>

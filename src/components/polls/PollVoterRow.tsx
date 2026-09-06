@@ -11,14 +11,17 @@ interface Voter {
 // carries the "how many". showRealName mirrors PollWall's own prop: only
 // the organizer's own screen, with "Reveal real names" on, ever swaps
 // alias-based initials/color for real-name-based ones (never guest-facing).
-export function PollVoterRow({ votes, showRealName = false }: { votes: Voter[]; showRealName?: boolean }) {
+// max passes through to AvatarStack's own max (default 5, unchanged — the
+// live-view call site is unaffected); the wrap-up screen's call site
+// passes max={4} per Figma.
+export function PollVoterRow({ votes, showRealName = false, max = 5 }: { votes: Voter[]; showRealName?: boolean; max?: number }) {
   const total = votes.length;
   if (!total) return null;
   const names = votes.map((v) => (showRealName && v.real_name ? v.real_name : v.alias));
 
   return (
     <div className="poll-voter-row">
-      <AvatarStack names={names} getInitials={aliasInitials} getColor={aliasColor} />
+      <AvatarStack names={names} getInitials={aliasInitials} getColor={aliasColor} max={max} />
       <span className="poll-voter-count">
         {total} {total === 1 ? 'person has' : 'people have'} voted
       </span>

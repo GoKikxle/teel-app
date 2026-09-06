@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { BackLink } from '../components/BackLink';
+import { useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import {
   aliasLooksLikeRealName,
@@ -8,15 +7,26 @@ import {
   fetchPoll,
   fetchPollOptions,
   fetchPollVotesPublic,
+  formatCloseCountdown,
+  formatDuration,
   guestCanSeeResults,
-  makeAlias,
   wallUnlocked,
-  type Alias,
 } from '../data/polls';
 import type { AliasPoll, AliasPollOption, AliasPollVotePublic } from '../lib/database.types';
 import { PollTally } from '../components/polls/PollTally';
 import { PollOptionBadge } from '../components/polls/PollOptionBadge';
 import { PollWall } from '../components/polls/PollWall';
+import { PollStatusPill } from '../components/polls/PollStatusPill';
+import { PollVoterRow } from '../components/polls/PollVoterRow';
+import { PollWinnerHero } from '../components/polls/PollWinnerHero';
+
+// No emoji-avatar generation exists anymore (round 5 removed the alias
+// Shuffle/emoji UI — see the alias field below) but alias_avatar is still
+// a not-null column (see 0010_alias_polls.sql) and nothing renders it
+// (PollWall/PollVoterRow render initials-based avatars via
+// aliasColor/aliasInitials instead) — this fixed default is the least-
+// disruptive fallback, not a reintroduction of the old generator.
+const DEFAULT_ALIAS_AVATAR = '🙂';
 
 // Figma-less feature (built from the reviewed prototype) — Alias Polls'
 // guest-facing vote screen, mirroring Detail.tsx's shape (no account
@@ -25,7 +35,6 @@ import { PollWall } from '../components/polls/PollWall';
 // since there's no identity to check it against (v1 non-goal).
 export function PollVote() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const toast = useToast();
 
   const [poll, setPoll] = useState<AliasPoll | null>(null);
@@ -35,7 +44,10 @@ export function PollVote() {
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [voterName, setVoterName] = useState('');
-  const [alias, setAlias] = useState<Alias>(() => makeAlias());
+  // Plain typed field now (round 5 removed the generated Shuffle/emoji
+  // alias) — starts empty, the guest must type one, no auto-generated
+  // default.
+  const [aliasName, setAliasName] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [justVoted, setJustVoted] = useState(false);
@@ -67,20 +79,20 @@ export function PollVote() {
   if (!poll || !id) {
     return (
       <div className="wrap">
-        <BackLink label="Board" onClick={() => navigate('/')} />
         <p className="lede">Poll not found.</p>
       </div>
     );
   }
 
-  const nudge = aliasLooksLikeRealName(voterName, alias.name);
-  const canSubmit = Boolean(selectedOption) && voterName.trim().length > 0;
+  const nudge = aliasLooksLikeRealName(voterName, aliasName);
+  const canSubmit = Boolean(selectedOption) && voterName.trim().length > 0 && aliasName.trim().length > 0;
 
   async function handleSubmit() {
     if (!selectedOption) return;
     const name = voterName.trim();
-    if (!name) {
-      toast("Add your name first — it stays private, but it's how the organizer keeps track.");
+    const displayAlias = aliasName.trim();
+    if (!name || !displayAlias) {
+      toast("Add your name and an alias first — your name stays private, only the alias is shown.");
       return;
     }
     setSubmitting(true);
@@ -89,8 +101,8 @@ export function PollVote() {
         pollId: id!,
         optionId: selectedOption,
         realName: name,
-        alias: alias.name,
-        aliasAvatar: alias.avatar,
+        alias: displayAlias,
+        aliasAvatar: DEFAULT_ALIAS_AVATAR,
         message: poll!.allow_messages ? message.trim() || null : null,
       });
       setJustVoted(true);
@@ -104,18 +116,28 @@ export function PollVote() {
   }
 
   if (poll.status === 'closed') {
+    const messageCount = votes.filter((v) => v.message?.trim()).length;
+    const duration = poll.closed_at ? formatDuration(poll.created_at, poll.closed_at) : '—';
     return (
       <div className="wrap">
-        <BackLink label="Poll" onClick={() => navigate('/')} />
         <div className="poll-page-body">
         <div className="panel poll-vote-panel poll-page-panel">
+          <PollStatusPill status={poll.status} />
           <h1>{poll.title}</h1>
-          <p className="lede">This poll is closed — here's how it landed.</p>
-          <h2>Final results</h2>
-          <PollTally poll={poll} options={options} votes={votes} />
-          <div className="poll-wall-title">
-            <h2>Message wall</h2>
+          <p className="lede">This poll is closed, here's how it landed.</p>
+          <PollWinnerHero options={options} votes={votes} />
+          <div className="poll-wrapup-meta">
+            <PollVoterRow votes={votes} max={4} />
+            {votes.length > 0 && <span className="board-dot" />}
+            <span className="poll-wrapup-duration">{duration} duration</span>
           </div>
+          <PollTally options={options} votes={votes} hideTotal />
+          <div className="poll-wall-title">
+            <h2>Best of the Wall</h2>
+          </div>
+          <p className="poll-wall-count">
+            {messageCount} Message{messageCount === 1 ? '' : 's'}
+          </p>
           <PollWall votes={votes} />
         </div>
         </div>
@@ -129,11 +151,11 @@ export function PollVote() {
 
   return (
     <div className="wrap">
-      <BackLink label="Poll" onClick={() => navigate('/')} />
       <div className="poll-page-body">
-      <div className="panel poll-vote-panel poll-page-panel" style={justVoted ? { opacity: 0.55 } : undefined}>
+      <div className={`panel poll-vote-panel poll-page-panel${justVoted ? ' locked' : ''}`}>
         <h1>{poll.title}</h1>
-        <p className="lede">Voting as a guest — the organizer is the only one who ever sees your real name.</p>
+        <PollStatusPill status={poll.status} />
+        <p className="lede">Voting as a guest, only the organizer sees your real name.</p>
 
         <div className="poll-vote-opts">
           {options.map((opt) => (
@@ -167,30 +189,24 @@ export function PollVote() {
           <>
             <div className="field" style={{ marginTop: 18 }}>
               <label>Your name</label>
-              <p className="field-hint">Only the organizer sees this</p>
-              <input type="text" placeholder="e.g. Priya Shah" value={voterName} onChange={(e) => setVoterName(e.target.value)} />
+              <p className="field-hint">Only the Organizer sees this</p>
+              <input type="text" placeholder="e.g Janet Lewis" value={voterName} onChange={(e) => setVoterName(e.target.value)} />
             </div>
 
-            <div className="poll-alias-preview">
-              <span className="poll-alias-avatar">{alias.avatar}</span>
-              <div className="poll-alias-txt">
-                <div className="poll-alias-kicker">You'll appear as</div>
-                <input
-                  type="text"
-                  className="poll-alias-input"
-                  maxLength={40}
-                  value={alias.name}
-                  onChange={(e) => setAlias((a) => ({ ...a, name: e.target.value }))}
-                />
-              </div>
-              <button type="button" className="poll-reroll" onClick={() => setAlias(makeAlias())}>
-                Shuffle ↻
-              </button>
+            <div className="field">
+              <label>Your alias / nick name</label>
+              <p className="field-hint">This is how you will appear to everyone else</p>
+              <input type="text" maxLength={40} placeholder="e.g Sponge Bob" value={aliasName} onChange={(e) => setAliasName(e.target.value)} />
             </div>
+            {/* No concrete Figma spec found for this nudge's styling in the
+                fetched frames — kept the same trigger logic, restyled to a
+                restrained inline note (muted text + small icon) instead of
+                the old bright amber box, consistent with this redesigned
+                form. Flagged as an assumption. */}
             {nudge && (
-              <div className="poll-alias-nudge">
-                ⚠️ That looks like it might be your real name — guests on the wall will see this alias.
-              </div>
+              <p className="poll-alias-nudge">
+                <span aria-hidden="true">ⓘ</span> That looks like it might be your real name — guests on the wall will see this alias.
+              </p>
             )}
 
             {poll.allow_messages && (
@@ -212,34 +228,27 @@ export function PollVote() {
       {justVoted && (
         <div className="panel poll-vote-panel poll-page-panel">
           <div className="poll-confirm-banner">
-            <span className="poll-confirm-tick">✓</span> Your vote is in — thanks for playing along.
+            <img src="/icons/shared/checkbox-active.svg" alt="" width={24} height={24} className="poll-confirm-tick" />
+            Your vote is in! Thank you for playing along.
           </div>
 
           {!unlocked && (
-            <div className="poll-lock-banner">
-              🔒 <b>
-                {votes.length} vote{votes.length === 1 ? '' : 's'}
-              </b>{' '}
-              so far — the breakdown stays hidden until the organizer reveals it.
-            </div>
+            <p className="poll-plain-note">Poll {formatCloseCountdown(poll.closes_at)}. The breakdown stays hidden until the organizer reveals it.</p>
           )}
           {unlocked && (
             <>
               <h2>Live results</h2>
-              <PollTally poll={poll} options={options} votes={votes} />
+              <PollTally options={options} votes={votes} />
             </>
           )}
 
           <div className="poll-wall-title">
-            <h2>Message wall</h2>
+            <h2>Message Wall</h2>
           </div>
           {!showWall ? (
-            <div className="poll-lock-banner">
-              🔒 <b>
-                {commentCount} comment{commentCount === 1 ? '' : 's'}
-              </b>{' '}
-              so far — the wall unlocks all at once when the organizer closes the poll.
-            </div>
+            <p className="poll-plain-note">
+              {commentCount} comment{commentCount === 1 ? '' : 's'} so far — the wall unlocks all at once when the organizer closes the poll.
+            </p>
           ) : (
             <PollWall votes={votes} />
           )}

@@ -1,12 +1,12 @@
-import { initialsBadge, optionHasBadge } from '../../data/polls';
+import { initialsBadge, optionMonogram } from '../../data/polls';
 import type { AliasPollOption } from '../../lib/database.types';
 
 // Priority: uploaded image > link-derived thumbnail (or colored-initials
-// fallback) > emoji > nothing — matches the reviewed prototype's
-// optBadgeInner exactly. Shared by the vote screen, organizer screen, and
-// tally components so the same option always renders identically.
+// fallback) > monogram (first letter of the label, white on black) — no
+// emoji fallback anymore, so a badge always renders; there's no longer an
+// empty case to bail out on. Shared by the vote screen, organizer screen,
+// and tally components so the same option always renders identically.
 export function PollOptionBadge({ option, className = 'poll-opt-badge' }: { option: AliasPollOption; className?: string }) {
-  if (!optionHasBadge(option)) return null;
   if (option.image_url) {
     return (
       <span className={className}>
@@ -29,5 +29,9 @@ export function PollOptionBadge({ option, className = 'poll-opt-badge' }: { opti
       </span>
     );
   }
-  return <span className={className}>{option.emoji}</span>;
+  return (
+    <span className={className} style={{ background: '#000', color: '#fff' }}>
+      {optionMonogram(option.label)}
+    </span>
+  );
 }

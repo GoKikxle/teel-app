@@ -138,6 +138,11 @@ export interface AliasPoll {
   status: AliasPollStatus;
   created_at: string;
   closed_at: string | null;
+  /** Round 5: every poll now has a close date/time, set at create time and
+   *  editable afterward (see UpdatePollInput.closesAt). Null only on polls
+   *  created before this field existed — treated as "never expires" for
+   *  backward compatibility (see 0012_poll_close_date.sql). */
+  closes_at: string | null;
 }
 
 export interface AliasPollOption {

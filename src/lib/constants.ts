@@ -29,6 +29,14 @@ export const PAY_LABELS: Record<PayMethod, string> = {
 // distinct without reintroducing category-style multi-hue color coding.
 export const AVATAR_COLORS = ['#1A1A1A', '#5B5B60', '#8B8B90', '#3D3D40', '#707075'];
 
+// Colorful rotation matching the "Komon board" Figma frames' Avatar Group
+// component — originally scoped to just BoardGatheringCard's RSVP avatars,
+// now also the exact palette Figma's Alias Polls frames use for voter-row
+// and message-wall avatars (see aliasColor() in src/data/polls.ts). Kept
+// here (not in the greyscale AVATAR_COLORS above) since the two are
+// deliberately different palettes for different contexts.
+export const BOARD_AVATAR_COLORS = ['#0088ff', '#00c8b3', '#f050f9', '#000000'];
+
 export function payLabel(method: PayMethod | null): string {
   return method ? PAY_LABELS[method] : 'payment link';
 }

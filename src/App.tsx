@@ -9,6 +9,7 @@ import { Edit } from './pages/Edit';
 import { SplitBillCreate } from './pages/SplitBillCreate';
 import { ClosedItems } from './pages/ClosedItems';
 import { PollCreate } from './pages/PollCreate';
+import { PollCreated } from './pages/PollCreated';
 import { PollVote } from './pages/PollVote';
 import { PollOrganize } from './pages/PollOrganize';
 
@@ -26,6 +27,8 @@ function App() {
         <Route path="/g/:id" element={<Detail />} />
         <Route path="/g/:id/edit" element={<Edit />} />
         <Route path="/poll/new" element={<PollCreate />} />
+        <Route path="/poll/:id/edit" element={<PollCreate />} />
+        <Route path="/poll/:id/created" element={<PollCreated />} />
         <Route path="/p/:id" element={<PollVote />} />
         <Route path="/poll/:id/organize" element={<PollOrganize />} />
       </Routes>
