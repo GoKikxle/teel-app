@@ -11,10 +11,15 @@ export function PollTally({
   poll,
   options,
   votes,
+  hideTotal = false,
 }: {
   poll: Pick<AliasPoll, 'chart_style'>;
   options: AliasPollOption[];
   votes: { option_id: string }[];
+  // PollOrganize's live view shows the count via the voter-avatar row
+  // instead (see PollVoterRow) — this line there would just repeat it.
+  // PollVote.tsx's "Live results" section and PollWrapUp keep this on.
+  hideTotal?: boolean;
 }) {
   const counts = tallyOptions(options, votes);
   const total = votes.length;
@@ -45,7 +50,7 @@ export function PollTally({
             <div className="poll-tally-card-body">
               <div className="poll-tally-card-head">
                 <span className="l">{option.label}</span>
-                <span className="n poll-mono">
+                <span className="n">
                   {count} · {pct}%
                 </span>
               </div>
@@ -56,9 +61,11 @@ export function PollTally({
           </div>
         ))
       )}
-      <div className="poll-tally-total poll-mono">
-        {total} vote{total === 1 ? '' : 's'} so far
-      </div>
+      {!hideTotal && (
+        <div className="poll-tally-total">
+          {total} vote{total === 1 ? '' : 's'} so far
+        </div>
+      )}
     </div>
   );
 }

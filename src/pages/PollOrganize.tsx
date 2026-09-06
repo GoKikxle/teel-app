@@ -19,6 +19,8 @@ import type { AliasPoll, AliasPollOption, AliasPollVote } from '../lib/database.
 import { PollTally } from '../components/polls/PollTally';
 import { PollWall } from '../components/polls/PollWall';
 import { PollOptionBadge } from '../components/polls/PollOptionBadge';
+import { PollStatusPill } from '../components/polls/PollStatusPill';
+import { PollVoterRow } from '../components/polls/PollVoterRow';
 
 // Figma-less feature (built from the reviewed prototype) — Alias Polls'
 // organizer screen. Ownership-gated the same way Edit.tsx gates gathering
@@ -132,8 +134,9 @@ export function PollOrganize() {
     <div className="wrap">
       <BackLink label="Poll" onClick={() => navigate('/')} />
 
+      <div className="poll-page-body">
       {justCreated && (
-        <div className="panel">
+        <div className="panel poll-page-panel">
           <h2 style={{ marginBottom: 10 }}>Poll is live</h2>
           <div className="share-row">
             <input type="text" readOnly value={link} />
@@ -147,30 +150,40 @@ export function PollOrganize() {
         </div>
       )}
 
-      <div className="panel">
-        <div className="poll-organize-head">
-          <div>
-            <h1>{poll.title}</h1>
-            <p className="lede" style={{ marginBottom: 4 }}>
-              Live · <span className="poll-mono">{votes.length}</span> votes
-            </p>
-          </div>
-          <div className="poll-reveal-toggle">
-            <span className="tlabel" id="reveal-names-label">
-              Reveal real names
-            </span>
-            <Switch.Root
-              checked={revealNames}
-              onCheckedChange={setRevealNames}
-              nativeButton
-              render={<button type="button" />}
-              className={(state) => `switch${state.checked ? ' on' : ''}`}
-              aria-labelledby="reveal-names-label"
-            />
-          </div>
-        </div>
+      <div className="panel poll-page-panel">
+        <h1>{poll.title}</h1>
+        <PollStatusPill status="open" />
+        <PollVoterRow votes={votes} showRealName={revealNames} />
+        <PollTally poll={poll} options={options} votes={votes} hideTotal />
+      </div>
 
-        <PollTally poll={poll} options={options} votes={votes} />
+      <div className="panel poll-page-panel">
+        <div className="poll-wall-title">
+          <h2>Message wall</h2>
+          {!poll.comments_live && <span className="poll-hidden-tag">Hidden from guests</span>}
+        </div>
+        <PollWall votes={votes} options={options} showRealName={revealNames} showVoteChip />
+      </div>
+
+      <div className="panel poll-page-panel">
+        <h2>Organizer controls</h2>
+
+        <div className="toggle-row">
+          <div>
+            <div className="tlabel" id="reveal-names-label">
+              Reveal real names
+            </div>
+            <div className="tsub">See who's behind each alias — only on this screen, never shown to guests.</div>
+          </div>
+          <Switch.Root
+            checked={revealNames}
+            onCheckedChange={setRevealNames}
+            nativeButton
+            render={<button type="button" />}
+            className={(state) => `switch${state.checked ? ' on' : ''}`}
+            aria-labelledby="reveal-names-label"
+          />
+        </div>
 
         {poll.suspense_mode && (
           <div className="toggle-row">
@@ -182,17 +195,15 @@ export function PollOrganize() {
                   : "They see the vote count ticking up, not the breakdown. Trigger the reveal when you're ready for the moment."}
               </div>
             </div>
-            <button className="btn-outline" onClick={handleReveal} disabled={poll.revealed || busy}>
+            <button
+              className={`btn-outline${poll.revealed ? ' revealed' : ''}`}
+              onClick={handleReveal}
+              disabled={poll.revealed || busy}
+            >
               {poll.revealed ? 'Revealed ✓' : 'Reveal to guests'}
             </button>
           </div>
         )}
-
-        <div className="poll-wall-title">
-          <h2>Message wall</h2>
-          {!poll.comments_live && <span className="poll-hidden-tag">Hidden from guests</span>}
-        </div>
-        <PollWall votes={votes} options={options} showRealName={revealNames} showVoteChip />
 
         <div className="poll-org-actions">
           <button className="btn-outline" onClick={handleClose} disabled={busy}>
@@ -204,6 +215,7 @@ export function PollOrganize() {
           🔒 <b>Only you see this screen.</b> Everyone else — including on the message wall shown to voters — sees
           aliases only. Turning off "Reveal real names" shows you the exact view guests get.
         </p>
+      </div>
       </div>
     </div>
   );
@@ -244,8 +256,12 @@ function PollWrapUp({
   return (
     <div className="wrap">
       <BackLink label="Poll" onClick={() => navigate('/')} />
-      <div className="panel">
-        <h1>Poll closed</h1>
+      <div className="poll-page-body">
+      <div className="panel poll-page-panel">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <h1 style={{ marginTop: 0 }}>Poll closed</h1>
+          <PollStatusPill status="closed" style={{ marginBottom: 0 }} />
+        </div>
         <p className="lede">Here's the keepsake — the same summary you could share once everyone's had their say.</p>
 
         <div className="poll-winner-strip">
@@ -268,15 +284,15 @@ function PollWrapUp({
 
         <div className="poll-stat-row">
           <div className="poll-stat-tile">
-            <span className="n poll-mono">{voteCount}</span>
+            <span className="n">{voteCount}</span>
             <span className="l">Votes</span>
           </div>
           <div className="poll-stat-tile">
-            <span className="n poll-mono">{duration}</span>
+            <span className="n">{duration}</span>
             <span className="l">Poll was open</span>
           </div>
           <div className="poll-stat-tile">
-            <span className="n poll-mono">{messageCount}</span>
+            <span className="n">{messageCount}</span>
             <span className="l">Messages left</span>
           </div>
         </div>
@@ -295,7 +311,7 @@ function PollWrapUp({
         </div>
       </div>
 
-      <div className="poll-gathering-cta">
+      <div className="poll-gathering-cta poll-page-panel">
         <span className="poll-flame">🔥</span>
         <div className="poll-gathering-cta-copy">
           <h2>The iron's hot — host a gathering with your people</h2>
@@ -312,6 +328,7 @@ function PollWrapUp({
             Start a gathering
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

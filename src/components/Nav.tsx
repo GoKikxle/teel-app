@@ -17,6 +17,7 @@ export function Nav() {
   const { isPersistent, email, signOut } = useAuth();
   const createGate = useCreateGate();
   const splitBillGate = useCreateGate('/split/create');
+  const pollGate = useCreateGate('/poll/new');
 
   const gatheringMatch = matchPath('/g/:id', location.pathname);
   const viewingGatheringId = gatheringMatch?.params.id ?? null;
@@ -124,6 +125,9 @@ export function Nav() {
           </button>
           <button className="navbtn accent" onClick={splitBillGate.requestCreate}>
             +Split bill
+          </button>
+          <button className="navbtn" onClick={pollGate.requestCreate}>
+            + New poll
           </button>
           <Menu.Root>
             <Menu.Trigger className="account-trigger" aria-label="Account menu">

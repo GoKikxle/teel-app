@@ -107,7 +107,8 @@ export function PollVote() {
     return (
       <div className="wrap">
         <BackLink label="Poll" onClick={() => navigate('/')} />
-        <div className="panel poll-vote-panel">
+        <div className="poll-page-body">
+        <div className="panel poll-vote-panel poll-page-panel">
           <h1>{poll.title}</h1>
           <p className="lede">This poll is closed — here's how it landed.</p>
           <h2>Final results</h2>
@@ -117,17 +118,20 @@ export function PollVote() {
           </div>
           <PollWall votes={votes} />
         </div>
+        </div>
       </div>
     );
   }
 
   const unlocked = guestCanSeeResults(poll);
   const showWall = wallUnlocked(poll);
+  const commentCount = votes.filter((v) => v.message?.trim()).length;
 
   return (
     <div className="wrap">
       <BackLink label="Poll" onClick={() => navigate('/')} />
-      <div className="panel poll-vote-panel" style={justVoted ? { opacity: 0.55 } : undefined}>
+      <div className="poll-page-body">
+      <div className="panel poll-vote-panel poll-page-panel" style={justVoted ? { opacity: 0.55 } : undefined}>
         <h1>{poll.title}</h1>
         <p className="lede">Voting as a guest — the organizer is the only one who ever sees your real name.</p>
 
@@ -163,9 +167,7 @@ export function PollVote() {
           <>
             <div className="field" style={{ marginTop: 18 }}>
               <label>Your name</label>
-              <p className="poll-hint" style={{ marginTop: 0, marginBottom: 6 }}>
-                Only the organizer sees this
-              </p>
+              <p className="field-hint">Only the organizer sees this</p>
               <input type="text" placeholder="e.g. Priya Shah" value={voterName} onChange={(e) => setVoterName(e.target.value)} />
             </div>
 
@@ -194,9 +196,7 @@ export function PollVote() {
             {poll.allow_messages && (
               <div className="field">
                 <label>Add a message (optional)</label>
-                <p className="poll-hint" style={{ marginTop: 0, marginBottom: 6 }}>
-                  Shown under your alias
-                </p>
+                <p className="field-hint">Shown under your alias</p>
                 <textarea maxLength={120} placeholder="Team Girl! 💗" value={message} onChange={(e) => setMessage(e.target.value)} />
                 <div className="poll-char-count">{message.length}/120</div>
               </div>
@@ -210,14 +210,17 @@ export function PollVote() {
       </div>
 
       {justVoted && (
-        <div className="panel poll-vote-panel">
+        <div className="panel poll-vote-panel poll-page-panel">
           <div className="poll-confirm-banner">
             <span className="poll-confirm-tick">✓</span> Your vote is in — thanks for playing along.
           </div>
 
           {!unlocked && (
             <div className="poll-lock-banner">
-              🔒 <b>{votes.length} votes</b> so far — the breakdown stays hidden until the organizer reveals it.
+              🔒 <b>
+                {votes.length} vote{votes.length === 1 ? '' : 's'}
+              </b>{' '}
+              so far — the breakdown stays hidden until the organizer reveals it.
             </div>
           )}
           {unlocked && (
@@ -232,14 +235,17 @@ export function PollVote() {
           </div>
           {!showWall ? (
             <div className="poll-lock-banner">
-              🔒 <b>{votes.filter((v) => v.message?.trim()).length} comments</b> so far — the wall unlocks all at once
-              when the organizer closes the poll.
+              🔒 <b>
+                {commentCount} comment{commentCount === 1 ? '' : 's'}
+              </b>{' '}
+              so far — the wall unlocks all at once when the organizer closes the poll.
             </div>
           ) : (
             <PollWall votes={votes} />
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

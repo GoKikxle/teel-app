@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { AVATAR_COLORS } from '../lib/constants';
 import type { AliasPoll, AliasPollOption, AliasPollVote, AliasPollVotePublic, ChartStyle, LinkMeta } from '../lib/database.types';
 
 // --- Alias generation ----------------------------------------------------
@@ -92,6 +93,21 @@ export function initialsBadge(meta: LinkMeta): InitialsBadge {
   const initials = words.map((w) => w.charAt(0) || '').join('').toUpperCase() || '?';
   const hue = strHash(basis) % 360;
   return { initials, bg: `hsl(${hue}, 60%, 90%)`, fg: `hsl(${hue}, 55%, 32%)` };
+}
+
+// Shared by the poll wall (PollWall.tsx) and the organizer's voter-avatar
+// row (PollOrganize.tsx) so the same person always gets the same initials
+// and color in both places. Deliberately separate from initialsBadge above
+// (link previews): that one hashes by host/name into an hsl() wheel, this
+// one hashes into the app's fixed greyscale AVATAR_COLORS palette — the
+// same palette RsvpPanel.tsx already uses, not a new hue system.
+export function aliasInitials(name: string): string {
+  const words = (name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  return words.map((w) => w.charAt(0).toUpperCase()).join('') || '?';
+}
+
+export function aliasColor(name: string): string {
+  return AVATAR_COLORS[strHash(name || '') % AVATAR_COLORS.length];
 }
 
 export interface LinkPreview {
@@ -324,6 +340,55 @@ export function pickBestMessages<T extends { message: string | null }>(votes: T[
     .slice()
     .sort((a, b) => b.message.length - a.message.length)
     .slice(0, n);
+}
+
+// --- Board integration --------------------------------------------------
+// Alias Polls have no entry point or find-again path elsewhere in the app;
+// these two organizer-scoped queries feed the Board's "Polls" tab and the
+// /closed reference list, mirroring fetchBoardGatherings/fetchClosedGatherings
+// in data/gatherings.ts exactly (same structure, same error-throwing pattern).
+
+export interface BoardPoll extends AliasPoll {
+  voteCount: number;
+}
+
+export async function fetchBoardPolls(organizerId: string): Promise<BoardPoll[]> {
+  const { data: polls, error } = await supabase
+    .from('alias_polls')
+    .select('*')
+    .eq('organizer_user_id', organizerId)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  const list = (polls ?? []) as AliasPoll[];
+  if (!list.length) return [];
+  // Single batched count query, not N+1 — alias_poll_votes_public is the
+  // same guest-safe view PollWall/PollVote already read from.
+  const { data: votes, error: votesError } = await supabase
+    .from('alias_poll_votes_public')
+    .select('poll_id')
+    .in('poll_id', list.map((p) => p.id));
+  if (votesError) throw votesError;
+  const counts = new Map<string, number>();
+  for (const v of votes ?? []) counts.set(v.poll_id, (counts.get(v.poll_id) ?? 0) + 1);
+  return list.map((p) => ({ ...p, voteCount: counts.get(p.id) ?? 0 }));
+}
+
+export interface ClosedPollSummary {
+  id: string;
+  title: string;
+  closed_at: string | null;
+}
+
+export async function fetchClosedPolls(organizerId: string): Promise<ClosedPollSummary[]> {
+  const { data, error } = await supabase
+    .from('alias_polls')
+    .select('id, title, closed_at')
+    .eq('organizer_user_id', organizerId)
+    .eq('status', 'closed')
+    .order('closed_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ClosedPollSummary[];
 }
 
 export function formatDuration(startIso: string, endIso: string): string {

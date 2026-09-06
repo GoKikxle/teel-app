@@ -192,8 +192,8 @@ export function PollCreate() {
 
   return (
     <div className="wrap">
-      <BackLink label="Poll" onClick={() => navigate('/')} />
-      <div className="panel poll-create-panel">
+      <BackLink label="New poll" onClick={() => navigate('/')} />
+      <div className="panel poll-create-panel poll-page-panel">
         <h1>Set up a poll</h1>
         <p className="lede">
           No group chat, no shared contacts. Anyone with the link can vote under an alias — you're the only one who
@@ -207,7 +207,7 @@ export function PollCreate() {
 
         <div className="field">
           <label>Options</label>
-          <p className="poll-hint" style={{ marginTop: 0 }}>
+          <p className="field-hint">
             Add an emoji, image, or GIF to each — it rides the bar on the results chart
           </p>
         </div>
@@ -284,13 +284,18 @@ export function PollCreate() {
             </div>
 
             <div className="poll-opt-link-row">
-              <input
-                type="text"
-                className="poll-opt-link-input"
-                placeholder="🔗 Or paste a link — restaurant site, Google Maps…"
-                value={opt.linkUrl}
-                onChange={(e) => handleLinkChange(opt.key, e.target.value)}
-              />
+              <div className="poll-opt-link-field">
+                <span className="poll-opt-link-icon" aria-hidden="true">
+                  <LinkIcon />
+                </span>
+                <input
+                  type="text"
+                  className="poll-opt-link-input"
+                  placeholder="Or paste a link — restaurant site, Google Maps…"
+                  value={opt.linkUrl}
+                  onChange={(e) => handleLinkChange(opt.key, e.target.value)}
+                />
+              </div>
               <span className={`poll-opt-link-status${opt.linkMeta ? '' : ' bad'}`}>
                 {!opt.linkUrl ? '' : opt.linkChecking ? 'Checking…' : opt.linkMeta ? `✓ ${opt.linkMeta.host}` : "That doesn't look like a full link yet"}
               </span>
@@ -303,7 +308,7 @@ export function PollCreate() {
 
         <div className="field">
           <label>Results chart style</label>
-          <p className="poll-hint" style={{ marginTop: 0, marginBottom: 10 }}>
+          <p className="field-hint">
             Preview uses your options above — pick whichever reads better.
           </p>
           <div className="poll-style-grid">
@@ -322,34 +327,36 @@ export function PollCreate() {
           </div>
         </div>
 
-        <PollToggleRow
-          id="allowMsg"
-          label="Let voters attach a message"
-          hint={'Short note next to their vote — "Team Girl! 💗" — shown under their alias, never their name.'}
-          checked={allowMessages}
-          onChange={setAllowMessages}
-        />
-        <div className="toggle-row">
-          <div>
-            <div className="tlabel">Ask for a name before voting</div>
-            <div className="tsub">Stops repeat votes and lets you know who's who. Only you ever see it.</div>
+        <div className="toggle-group">
+          <PollToggleRow
+            id="allowMsg"
+            label="Let voters attach a message"
+            hint={'Short note next to their vote — "Team Girl! 💗" — shown under their alias, never their name.'}
+            checked={allowMessages}
+            onChange={setAllowMessages}
+          />
+          <div className="toggle-row">
+            <div>
+              <div className="tlabel">Ask for a name before voting</div>
+              <div className="tsub">Stops repeat votes and lets you know who's who. Only you ever see it.</div>
+            </div>
+            <Switch.Root checked disabled nativeButton render={<button type="button" />} className="switch on" aria-label="Ask for a name before voting (always on)" />
           </div>
-          <Switch.Root checked disabled nativeButton render={<button type="button" />} className="switch on" aria-label="Ask for a name before voting (always on)" />
+          <PollToggleRow
+            id="suspenseMode"
+            label="Hide results until you reveal them"
+            hint="Guests watch votes roll in but can't see the breakdown — you trigger the reveal moment when everyone's ready."
+            checked={suspenseMode}
+            onChange={setSuspenseMode}
+          />
+          <PollToggleRow
+            id="commentsLive"
+            label="Show comments & activity live"
+            hint="Guests watch the message wall fill up as people vote. Turn off to reveal it all at once when you close the poll."
+            checked={commentsLive}
+            onChange={setCommentsLive}
+          />
         </div>
-        <PollToggleRow
-          id="suspenseMode"
-          label="Hide results until you reveal them"
-          hint="Guests watch votes roll in but can't see the breakdown — you trigger the reveal moment when everyone's ready."
-          checked={suspenseMode}
-          onChange={setSuspenseMode}
-        />
-        <PollToggleRow
-          id="commentsLive"
-          label="Show comments & activity live"
-          hint="Guests watch the message wall fill up as people vote. Turn off to reveal it all at once when you close the poll."
-          checked={commentsLive}
-          onChange={setCommentsLive}
-        />
 
         <button className="primary-btn" style={{ marginTop: 22 }} onClick={handleCreate} disabled={submitting}>
           {submitting ? 'Creating…' : 'Create poll'}
@@ -387,6 +394,20 @@ function PollToggleRow({
         aria-labelledby={`${id}-label`}
       />
     </div>
+  );
+}
+
+// Plain inline SVG rather than a new icon-library dependency — the app
+// doesn't already pull in one (icons elsewhere are either standalone
+// files under /public/icons or, like this, hand-authored inline SVGs),
+// so this matches the existing approach instead of introducing lucide or
+// similar just for one glyph.
+function LinkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
   );
 }
 

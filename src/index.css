@@ -299,6 +299,11 @@ input[type=text], input[type=email], input[type=number], input[type=date], input
   font-family: inherit; font-size: 15px; color: var(--ink);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
+/* Constrains the browser's free-form resize handle to vertical-only — the
+   only <textarea> in the app today (Alias Polls' message field) was
+   showing the default diagonal resize affordance, which can drag the
+   field wider than its own container. */
+textarea { resize: vertical; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 45, 85, .14); outline: none; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cats { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1259,7 +1264,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    input[type=text]/textarea/.primary-btn/.btn-outline/.toggle-row/.switch/
    .share-row/.wall-title(-equivalent)/.poll-hint above are reused as-is.
    =========================================================================== */
-.poll-mono { font-family: 'DM Mono', monospace; font-variant-numeric: tabular-nums; }
+.poll-mono { font-family: 'DM Mono', monospace; font-variant-numeric: tabular-nums; font-feature-settings: "zero" 0; }
 .poll-wall-title { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 12px; gap: 10px; }
 .poll-wall-title h2 { margin: 0; }
 .poll-hidden-tag {
@@ -1267,10 +1272,53 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #595959; background: #f4f2ee; border: 1px solid #ede9e2; padding: 4px 9px; border-radius: 999px;
 }
 
+/* Root-cause width fix — the three Alias Polls pages were built as one
+   wide panel spanning the full .wrap column (~920px), while every other
+   single-column form in the app (New Gathering's fields column, Split
+   Bill's own `.panel` at style={{maxWidth:480}}) caps out around 480px.
+   That single extra ~440px of unused width is what stranded the vote-page
+   radio dots, bloated the chart preview dead space, and made the intro
+   paragraph read as half-width — reapplying the same 480px measure here
+   instead of hand-rolling a new one. margin-top: 40px on the wrapping body
+   replicates the same back-link-to-content gap New Gathering gets for
+   free from .create-eyebrow-row's own padding-top (see .closed-panel's
+   identical margin-top: 40px for the same "whole page content in one
+   card" shape). */
+.poll-page-body { margin-top: 40px; }
+.poll-page-panel { max-width: 480px; }
+/* h1's shared default (margin: 8px 0 4px) adds an extra 8px on top of
+   .panel's own uniform 16px padding when h1 is the panel's first child —
+   these panels have no separate page-level heading above them the way
+   Create.tsx/SplitBillCreate.tsx do, so the title sits directly inside.
+   Same fix as .closed-panel h1's own margin: 0 for the identical
+   "whole page content in one self-contained card" shape, so top and
+   bottom padding read as the same 16px instead of top reading larger. */
+.poll-page-panel > h1:first-child { margin-top: 0; }
+/* Caption-style label helper — the same "label, then a light caption,
+   then real spacing before the field" rhythm .mode-sub already uses under
+   .mode-title, applied here instead of the body-sized .poll-hint (which
+   stays as-is for its other, non-label-adjacent uses: share-link captions,
+   lock callouts, etc). */
+.field-hint { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: var(--ink-faint); line-height: 1.4; margin: -4px 0 8px; }
+/* The intro paragraph inherits the shared .lede's 46ch cap, which read as
+   "half the card" while the fields below spanned the full (much wider)
+   panel. Now that the panel itself is capped at 480px, drop the extra cap
+   so the lede simply matches the same column the fields use. */
+.poll-create-panel { margin-top: 40px; }
+.poll-create-panel .lede { max-width: none; }
+/* Multiple Base UI Switch settings rows in one bordered panel with
+   dividers, instead of each .toggle-row stacked as its own separate
+   bordered card — .toggle-row itself is untouched (Create.tsx/Edit.tsx/
+   SplitPayPanel.tsx all still get their own standalone bordered card),
+   this only changes how .toggle-row looks when nested inside .toggle-group. */
+.toggle-group { border: 1px solid #f0f0f0; border-radius: 12px; background: var(--card); margin-bottom: 10px; overflow: hidden; }
+.toggle-group .toggle-row { border: none; border-radius: 0; margin-bottom: 0; border-bottom: 1px solid #f0f0f0; }
+.toggle-group .toggle-row:last-child { border-bottom: none; }
+
 /* --- Create screen: option rows --- */
 .poll-opt-block { margin-bottom: 14px; }
 .poll-opt-block:last-child { margin-bottom: 0; }
-.poll-opt-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+.poll-opt-row { display: flex; gap: 10px; margin-bottom: 6px; align-items: center; }
 .poll-opt-avatar-wrap { position: relative; flex-shrink: 0; }
 .poll-opt-avatar-btn {
   width: 40px; height: 40px; border-radius: 50%; border: 1.5px dashed #ede9e2; background: #fcfaf5;
@@ -1291,9 +1339,26 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #595959; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
 }
 .poll-opt-remove:hover { border-color: var(--ink); color: var(--ink); }
-.poll-opt-link-row { display: flex; align-items: center; gap: 8px; padding-left: 50px; }
-.poll-opt-link-input {
-  flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid transparent; background: transparent;
+/* Flush with the avatar's own left edge above (item: "three different left
+   edges") instead of a separate 50px indent that lined up with neither the
+   avatar nor the label. */
+.poll-opt-link-row { display: flex; align-items: center; gap: 8px; }
+.poll-opt-link-field { position: relative; flex: 1; min-width: 0; }
+/* Real inline icon instead of a literal 🔗 glyph typed into the
+   placeholder string — matches the app's existing plain-SVG icon
+   approach (no icon library dependency exists here to reuse). */
+.poll-opt-link-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  display: flex; color: #a79f91; pointer-events: none;
+}
+/* `input` prefixed onto the class so this beats the shared
+   `input[type=text]` rule's own border/background/padding on specificity
+   (bare .poll-opt-link-input tied its specificity below that attribute
+   selector and silently lost, which is why this was rendering with the
+   shared rule's solid border + white fill instead of the transparent,
+   hover-to-reveal treatment below). */
+input.poll-opt-link-input {
+  width: 100%; padding: 7px 10px 7px 30px; border-radius: 8px; border: 1px solid transparent; background: transparent;
   color: #595959; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px;
 }
 .poll-opt-link-input:hover { background: #fcfaf5; }
@@ -1309,15 +1374,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 /* --- Create screen: chart style live previews --- */
 .poll-style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .poll-style-card {
-  display: flex; flex-direction: column; gap: 10px; text-align: left; font: inherit;
+  display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit;
   border: 1.5px solid #ede9e2; background: var(--card); border-radius: 14px; padding: 10px; cursor: pointer;
 }
 .poll-style-card:hover { border-color: #595959; }
-.poll-style-card.active { border-color: var(--accent); background: rgba(255, 45, 85, .05); }
+/* Border-only selected state, matching .mode-card.active's own treatment
+   (the app's existing convention for a selected option-card) rather than
+   a filled/tinted background — the chart-preview bars are already accent-
+   colored, so a tinted card on top of that read far heavier than any
+   other selection state in the app. */
+.poll-style-card.active { border-color: var(--accent); }
 .poll-style-label { font-size: 12.5px; font-weight: 700; text-align: center; color: var(--ink); }
+/* No min-height/justify-content:center — the thumb now sizes to its own
+   content (a couple of bars, or the columns chart) instead of forcing a
+   fixed-height box that left short content floating in empty space. */
 .poll-style-thumb {
-  background: #fcfaf5; border-radius: 10px; padding: 10px; min-height: 82px;
-  display: flex; flex-direction: column; justify-content: center; pointer-events: none;
+  background: #fcfaf5; border-radius: 10px; padding: 10px;
+  display: flex; flex-direction: column; pointer-events: none;
 }
 .poll-mini-card-row { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
 .poll-mini-card-row:last-child { margin-bottom: 0; }
@@ -1342,7 +1415,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-vote-opt-row { display: flex; gap: 8px; margin-bottom: 9px; align-items: stretch; }
 .poll-vote-opt {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 16px;
-  border-radius: 12px; border: 1.5px solid #ede9e2; background: var(--card); cursor: pointer; font: inherit;
+  /* var(--line) matches the contrast other list rows use (.invite-row,
+     .item-breakdown li) — #ede9e2 read as nearly invisible against the
+     white card. */
+  border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); cursor: pointer; font: inherit;
   font-family: 'Plus Jakarta Sans', sans-serif; color: var(--ink);
 }
 .poll-vote-opt:hover:not(:disabled) { border-color: #595959; }
@@ -1364,18 +1440,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 .poll-alias-preview {
   display: flex; align-items: center; gap: 10px; background: rgba(255, 45, 85, .06); border-radius: 12px;
-  padding: 12px 14px; margin-bottom: 16px;
+  padding: 13px 16px; margin-bottom: 16px;
 }
-.poll-alias-avatar { font-size: 22px; line-height: 1; }
+/* Sized up so the avatar reads as paired with the alias input beside it
+   instead of looking small and centered against the whole two-line block
+   (kicker + input) on its own. */
+.poll-alias-avatar { font-size: 30px; line-height: 1; }
 .poll-alias-txt { flex: 1; min-width: 0; }
 .poll-alias-kicker { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
-.poll-alias-input {
+/* Same `input` + class specificity bump as .poll-opt-link-input above —
+   this was losing its own border:none/background:transparent to the
+   shared input[type=text] rule, which is what made the alias field read
+   as a heavily-bordered nested input instead of a plain underlined one. */
+input.poll-alias-input {
   width: 100%; font-size: 14px; font-weight: 700; color: var(--ink); font-family: 'DM Mono', monospace;
   background: transparent; border: none; border-bottom: 1.5px dashed transparent; padding: 0 0 1px;
 }
-.poll-alias-input:hover { border-bottom-color: #ede9e2; }
-.poll-alias-input:focus { outline: none; border-bottom-color: var(--accent); }
-.poll-reroll { background: none; border: none; color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+input.poll-alias-input:hover { border-bottom-color: #ede9e2; }
+input.poll-alias-input:focus { outline: none; border-bottom-color: var(--accent); }
+.poll-reroll { background: none; border: none; color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; padding: 4px; }
 .poll-reroll:hover { text-decoration: underline; }
 .poll-alias-nudge {
   display: flex; gap: 8px; font-size: 12px; line-height: 1.5; color: #9c6510; background: #fbeacb;
@@ -1391,13 +1474,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;
 }
+/* display:flex removed — this wraps a leading emoji, a bold lead-in, and
+   the rest of the sentence as sibling inline/text nodes inside one <div>.
+   With display:flex every one of those (including the plain text runs
+   either side of the <b>) becomes its own flex item, so the bold lead-in
+   and the trailing sentence rendered as two separate columns instead of
+   one flowing paragraph. Block display lets them wrap together normally. */
 .poll-lock-banner {
-  display: flex; align-items: center; gap: 10px; background: #fcfaf5; border: 1px dashed #ede9e2;
+  background: #fcfaf5; border: 1px dashed #ede9e2;
   border-radius: 12px; padding: 13px 15px; margin-bottom: 18px; font-size: 13px; color: #595959; line-height: 1.5;
 }
 
 /* --- Tally (shared: vote / organizer / wrap-up) --- */
 .poll-tally { margin-bottom: 20px; }
+/* Plain text, not .poll-mono/DM Mono — this is a sentence ("N votes so
+   far"), not a tabular readout, and at N=0 DM Mono's zero glyph renders
+   slashed with no font-feature toggle to turn that off. The stat-tile and
+   per-option counts below have the same DM Mono → plain-font swap for the
+   same reason (see .poll-stat-tile .n / .poll-tally-card-head .n). */
 .poll-tally-total { font-size: 11.5px; color: #a79f91; margin-top: 10px; }
 .poll-tally-bar-track { height: 14px; border-radius: 999px; background: #fcfaf5; overflow: hidden; }
 .poll-tally-bar { height: 100%; border-radius: 999px; background: var(--accent); transition: width .35s ease; }
@@ -1410,11 +1504,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-tally-card-thumb-inner img { width: 100%; height: 100%; object-fit: cover; }
 .poll-tally-card-body { flex: 1; min-width: 0; }
 .poll-tally-card-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
-.poll-tally-card-head .n { font-family: 'DM Mono', monospace; color: #595959; font-weight: 500; flex-shrink: 0; }
+/* Not DM Mono — its zero glyph renders slashed with no OpenType toggle to
+   turn that off, which reads as a glyph error at 0 votes. Plain body font
+   instead, matching how the app's other prominent numbers (.split-amt,
+   .board-card-amount, .receipt-amount) already render in Plus Jakarta
+   Sans rather than DM Mono. */
+.poll-tally-card-head .n { color: #595959; font-weight: 500; flex-shrink: 0; }
 .poll-tally-card-head .l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .poll-tally-cols { display: flex; align-items: flex-end; gap: 16px; overflow-x: auto; padding: 4px 2px 6px; margin-bottom: 6px; }
 .poll-tally-col { flex: 0 0 auto; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
-.poll-tally-col-count { font-size: 12px; color: #595959; font-family: 'DM Mono', monospace; }
+.poll-tally-col-count { font-size: 12px; color: #595959; }
 .poll-tally-col-thumb {
   width: 46px; height: 46px; border-radius: 14px; background: #fcfaf5; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 23px; overflow: hidden; box-shadow: var(--elevation-1);
@@ -1422,16 +1521,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-tally-col-thumb-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 23px; }
 .poll-tally-col-thumb-inner img { width: 100%; height: 100%; object-fit: cover; }
 .poll-tally-col-track {
-  width: 36px; height: 116px; background: #fcfaf5; border-radius: 10px 10px 4px 4px;
+  width: 36px; height: 88px; background: #fcfaf5; border-radius: 10px 10px 4px 4px;
   display: flex; align-items: flex-end; overflow: hidden;
 }
-.poll-tally-col-fill { width: 100%; border-radius: 10px 10px 0 0; min-height: 3px; background: var(--accent); transition: height .35s ease; }
+/* No min-height — at 0 votes pct is exactly 0, and a forced minimum
+   rendered as a thin accent-colored sliver sitting at the foot of an
+   otherwise-empty track (read as a stray underline). A genuine non-zero
+   percentage still renders a visible fill; true zero now renders none. */
+.poll-tally-col-fill { width: 100%; border-radius: 10px 10px 0 0; background: var(--accent); transition: height .35s ease; }
 .poll-tally-col-label { font-size: 11px; color: var(--ink); text-align: center; line-height: 1.3; max-width: 68px; }
 
 /* --- Message wall (shared: vote / organizer / wrap-up) --- */
 .poll-wall { display: flex; flex-direction: column; gap: 8px; }
-.poll-msg-card { display: flex; gap: 11px; padding: 12px 13px; border-radius: 12px; background: #fcfaf5; border: 1px solid #ede9e2; }
-.poll-msg-avatar { font-size: 18px; line-height: 1; margin-top: 1px; }
+.poll-msg-card { display: flex; gap: 11px; padding: 12px 13px; border-radius: 14px; background: #fcfaf5; border: 1px solid #ede9e2; }
+/* Circular initials avatar (same alias->color/initials mapping as
+   PollVoterRow's stacked avatars, via aliasColor/aliasInitials) replacing
+   the old alias_avatar emoji — matches .avatar's 32px/white-bold-initial
+   treatment rather than a one-off size. */
+.poll-msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
 .poll-msg-body { flex: 1; min-width: 0; }
 .poll-msg-who { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
 .poll-msg-alias { font-size: 12.5px; font-weight: 700; color: var(--accent); }
@@ -1439,14 +1546,78 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-msg-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; background: rgba(255, 45, 85, .08); color: var(--accent); }
 .poll-msg-text { font-size: 13.5px; line-height: 1.5; color: var(--ink); word-wrap: break-word; }
 .poll-msg-text.empty { color: #a79f91; font-style: italic; }
+/* Plain body font, not .poll-mono/DM Mono — same reasoning as the vote
+   counts elsewhere: DM Mono's zero glyph renders slashed, which reads as a
+   font bug in a plain time like "10:05". No other date/time display in the
+   app (CancelledPanel/OrganizerPanel/SplitBillPayPanel/Board/ClosedItems)
+   uses DM Mono either. */
 .poll-msg-time { font-size: 10.5px; color: #a79f91; margin-left: auto; flex-shrink: 0; }
-.poll-empty-wall { text-align: center; padding: 30px 12px; color: #a79f91; font-size: 13px; }
+/* Own vertical padding only, no horizontal — this now sits inside a
+   .panel that already contributes 16px of padding on every side, so the
+   old 16px/12px here on top of that read as an oversized dead box once the
+   wall became its own card (see §1's card split). */
+.poll-empty-wall { text-align: center; padding: 10px 0; color: #a79f91; font-size: 13px; }
 
 /* --- Organizer screen --- */
-.poll-organize-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-.poll-reveal-toggle { display: flex; align-items: center; gap: 8px; }
+/* Round 2: the live view is now a stack of separate .panel cards (Results /
+   Message wall / Organizer controls) instead of one mega-card — see
+   PollOrganize.tsx. .poll-organize-head/.poll-reveal-toggle (the old
+   title+toggle flex row) are gone with it: the title is now a plain
+   .poll-page-panel > h1:first-child, and the toggle lives in its own
+   .toggle-row inside the organizer-controls card, so there's no longer a
+   title/toggle collision to guard against with flex-wrap. */
 .poll-org-actions { display: flex; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #ede9e2; }
-.poll-org-callout { display: flex; gap: 8px; margin: 18px 0 0; }
+/* display:flex removed for the same reason as .poll-lock-banner above —
+   this wraps a leading emoji + bold lead-in + trailing sentence as one
+   <p>, and flex was splitting those into separate columns instead of one
+   flowing paragraph. */
+.poll-org-callout { margin: 18px 0 0; }
+
+/* Status pill — filled dot + uppercase/letterspaced word, replacing the
+   plain-text "Live · N votes" header line. Dot+pill structure borrows
+   .hero-vis-badge/.hero-vis-dot (neutral/closed) and .hero-cancelled-badge
+   (accent-tinted/live); typography borrows .poll-hidden-tag's
+   uppercase+letterspaced DM Mono treatment. */
+.poll-status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 4px 10px 4px 8px; border-radius: 999px; margin-bottom: 10px;
+}
+.poll-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.poll-status-pill.live { background: rgba(255, 45, 85, .1); color: var(--accent); }
+.poll-status-pill.live .poll-status-dot { background: var(--accent); }
+.poll-status-pill.closed { background: #fcfaf5; color: #4f483b; }
+.poll-status-pill.closed .poll-status-dot { background: #4f483b; }
+
+/* Voter avatar row — stacked initials avatars (AvatarStack, reused with
+   alias-based initials/colors from data/polls.ts) + a "N people have
+   voted" line, replacing PollTally's old "N vote(s) so far" text on
+   PollOrganize's live view only (PollTally.hideTotal). */
+.poll-voter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.poll-voter-row .avatar-stack { margin-bottom: 0; }
+.poll-voter-count { font-size: 13px; color: var(--ink-soft); }
+
+/* Reveal-to-guests control fix: this button sits inside a plain
+   .toggle-row alongside a label+sub text block that can run long ("Results
+   are hidden from guests" + its explanation). Flex items shrink by default
+   (flex-shrink: 1, no white-space control), so at this card's ~480px
+   width the button was being squeezed down to ~100px and its label wrapped
+   onto 3 lines — rendering as a near-circle with stacked text instead of a
+   normal one-line pill. This is the only place a <button> sits inside a
+   .toggle-row (every other toggle-row control is a Switch), so scoping the
+   fix here is safe. */
+.toggle-row .btn-outline { flex-shrink: 0; white-space: nowrap; }
+/* Completed "Revealed" state — deliberate, distinct from the generic
+   .btn-outline:disabled 40%-opacity fade (which read as broken/low-contrast
+   rather than "successfully done"). Modifier-class approach like
+   .btn-outline.done (RsvpPanel's "You're in · cancel"), but that one stays
+   interactive — this one is intentionally inert once revealed, so it gets
+   its own tinted background instead of relying on opacity alone. */
+.btn-outline.revealed:disabled {
+  opacity: 1; cursor: default;
+  background: rgba(28, 92, 68, .1); border-color: rgba(28, 92, 68, .35); color: var(--success);
+}
+.btn-outline.revealed:disabled:hover { background: rgba(28, 92, 68, .1); color: var(--success); }
 
 /* --- Wrap-up / keepsake --- */
 .poll-winner-strip { display: flex; align-items: center; gap: 10px; background: rgba(255, 45, 85, .06); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
@@ -1457,7 +1628,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-winner-badge img { width: 100%; height: 100%; object-fit: cover; }
 .poll-stat-row { display: flex; gap: 10px; margin-bottom: 20px; }
 .poll-stat-tile { flex: 1; background: #fcfaf5; border-radius: 12px; padding: 13px 14px; }
-.poll-stat-tile .n { font-family: 'DM Mono', monospace; font-size: 19px; font-weight: 500; color: var(--ink); display: block; }
+.poll-stat-tile .n { font-size: 19px; font-weight: 500; color: var(--ink); display: block; }
 .poll-stat-tile .l { font-size: 11px; color: #a79f91; margin-top: 2px; }
 .poll-summary-actions { display: flex; gap: 8px; margin-top: 4px; }
 .poll-gathering-cta {
@@ -1471,7 +1642,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-gathering-cta-copy p { margin: 0 0 14px; font-size: 12.5px; color: #595959; line-height: 1.5; max-width: 44ch; }
 
 @media (max-width: 760px) {
-  .poll-opt-link-row { padding-left: 0; }
   .poll-stat-row { flex-direction: column; }
   .poll-gathering-cta { flex-direction: column; align-items: flex-start; }
 }
