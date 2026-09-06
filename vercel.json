@@ -4,7 +4,7 @@
   ],
   "functions": {
     "api/poll-keepsake.tsx": {
-      "includeFiles": "api/package.json"
+      "includeFiles": "api/fonts/**"
     }
   }
 }

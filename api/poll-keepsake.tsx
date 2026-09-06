@@ -1,40 +1,45 @@
-// Vercel Edge Function — renders a closed poll's single-winner result as a
-// PNG via @vercel/og (Satori), for PollKeepsakeShare.tsx and the OG
+// Vercel Node.js Function — renders a closed poll's single-winner result
+// as a PNG via @vercel/og (Satori), for PollKeepsakeShare.tsx and the OG
 // middleware (see middleware.ts's /p/:id branch). GET
 // /api/poll-keepsake?id=<pollId>&size=1080|1200x630 (defaults to 1080).
 //
 // .tsx, not .ts, because @vercel/og's ImageResponse takes a JSX tree — the
 // only file in api/ that needs the JSX transform. Not covered by
 // tsconfig.app.json (only includes src) or tsconfig.node.json (only
-// vite.config.ts) — same pre-existing gap as middleware.ts/
-// poll-link-preview.ts. Type-check standalone from OUTSIDE the project
-// directory (to dodge the tsconfig.json-present conflict error):
-//   npx --yes -p typescript tsc --noEmit --target es2023 --lib ES2023,DOM \
-//     --module esnext --moduleResolution bundler --skipLibCheck --jsx react-jsx \
-//     api/poll-keepsake.tsx
+// vite.config.ts) — see api/tsconfig.json, which this compiles under
+// instead. Type-check standalone: `npx tsc --noEmit --project
+// api/tsconfig.json api/poll-keepsake.tsx` (or `cd api && npx tsc
+// --noEmit`, which picks up that same config).
 //
-// Edge Runtime constraints (see middleware.ts's own doc comment for the
-// full rationale): raw fetch() to Supabase's PostgREST endpoint with the
-// public anon key, no @supabase/supabase-js. Deliberately does NOT import
+// Node runtime, not Edge, and CommonJS output, not ESM: @vercel/og's own
+// published ESM build (dist/index.node.js under Node's "import"/"node"
+// export conditions) contains an esbuild-generated `require('fs')` call
+// its bundler never converted to a real ESM import — a bug baked into
+// that published file, not something fixable here. Its CommonJS build
+// doesn't have this problem, so this file (and api/tsconfig.json) target
+// commonjs to route to that one instead. That in turn is why font loading
+// below uses fs.readFileSync + process.cwd() rather than `fetch(new
+// URL(..., import.meta.url))` — import.meta doesn't exist under CommonJS
+// output. vercel.json's `functions["api/poll-keepsake.tsx"].includeFiles`
+// ensures api/fonts/** actually ships alongside the deployed function so
+// that path.join(process.cwd(), 'api', 'fonts', ...) resolves at runtime.
+//
+// Raw fetch() to Supabase's PostgREST endpoint with the public anon key,
+// no @supabase/supabase-js. Deliberately does NOT import
 // tallyOptions/pickWinners from src/data/polls.ts, or the TrophyIcon/
 // Wordmark/icon components from src/ — those modules assume a Vite/browser
-// build context (that file imports the Supabase JS client at module scope,
-// which isn't guaranteed edge-safe end to end) and aren't guaranteed to
-// survive being bundled for the Edge Runtime by Vercel's separate function
-// build step. The tally/winner logic and the three brand SVG paths are
-// small enough to mirror locally instead — see the comments at each below
-// for exactly which source file they're kept in sync with.
+// build context (that file imports the Supabase JS client at module scope)
+// and aren't guaranteed to survive being bundled by Vercel's separate
+// function build step. The tally/winner logic and the three brand SVG
+// paths are small enough to mirror locally instead — see the comments at
+// each below for exactly which source file they're kept in sync with.
 //
 // Privacy: only ever selects option_id from alias_poll_votes_public here —
 // never alias, message, avatar, or real_name (see fetchVotes below).
 
 import { ImageResponse } from '@vercel/og';
-
-// Edge Runtime only actually exposes process.env (for the project's
-// configured Environment Variables) — not the rest of Node's process API —
-// so this declares just that rather than pulling in @types/node wholesale.
-// Same declaration as middleware.ts.
-declare const process: { env: Record<string, string | undefined> };
+import fs from 'fs';
+import path from 'path';
 
 interface PollRow {
   id: string;
@@ -209,10 +214,8 @@ export default async function handler(request: Request): Promise<Response> {
   // count line, since there's no single winner's share to state.
   const showVoteQuestionBlock = size === '1080' && !isZero;
 
-  const [plusJakartaMedium, dmMonoRegular] = await Promise.all([
-    fetch(new URL('./fonts/PlusJakartaSans-Medium.ttf', import.meta.url)).then((res) => res.arrayBuffer()),
-    fetch(new URL('./fonts/DMMono-Regular.ttf', import.meta.url)).then((res) => res.arrayBuffer()),
-  ]);
+  const plusJakartaMedium = fs.readFileSync(path.join(process.cwd(), 'api', 'fonts', 'PlusJakartaSans-Medium.ttf'));
+  const dmMonoRegular = fs.readFileSync(path.join(process.cwd(), 'api', 'fonts', 'DMMono-Regular.ttf'));
 
   const width = size === '1080' ? 1080 : 1200;
   const height = size === '1080' ? 1080 : 630;
