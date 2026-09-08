@@ -10,14 +10,17 @@ interface AuthState {
   isPersistent: boolean;
   /** Only set once isPersistent is true. */
   email: string | null;
-  /** Sends a magic link to the given email. Does NOT touch the current
-   *  (possibly anonymous) session — nothing changes until the person clicks
-   *  the link, at which point auth-js swaps in a session for that email's
-   *  account (new or existing). This is a deliberate account switch, not an
-   *  upgrade-in-place: the anonymous session's uid is abandoned, which is
-   *  fine because nothing is ever written under it before sign-in commits —
-   *  callers gate creation on isPersistent first. */
-  signInWithOtp: (email: string) => Promise<{ error: string | null }>;
+  /** POSTs to api/signin — the only place allowed to call Supabase's
+   *  signInWithOtp (see that file's own header comment for why this isn't
+   *  called directly from the client anymore). Does NOT touch the current
+   *  (possibly anonymous) session either way: if approved, nothing changes
+   *  until the person clicks the emailed link, at which point auth-js swaps
+   *  in a session for that email's account (new or existing) — a deliberate
+   *  account switch, not an upgrade-in-place, which is fine because nothing
+   *  is ever written under the anonymous uid before sign-in commits. If not
+   *  approved, the email is recorded on the waitlist server-side and no
+   *  session-affecting call is made at all. */
+  requestSignIn: (email: string) => Promise<{ status: 'sent' | 'waitlisted' | 'error'; message?: string }>;
   /** Signs out of the persistent account. The app always needs *some*
    *  session — guests RSVP/vote/pay anonymously — so a fresh anonymous
    *  session is established right behind it (see the SIGNED_OUT handler
@@ -30,7 +33,7 @@ const AuthContext = createContext<AuthState>({
   ready: false,
   isPersistent: false,
   email: null,
-  signInWithOtp: async () => ({ error: 'Not ready' }),
+  requestSignIn: async () => ({ status: 'error', message: 'Not ready' }),
   signOut: async () => {},
 });
 
@@ -86,12 +89,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function signInWithOtp(email: string): Promise<{ error: string | null }> {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    return { error: error?.message ?? null };
+  // Fails closed: any thrown error (network failure, bad JSON, non-2xx
+  // with no parseable body) resolves to { status: 'error' } — never
+  // 'sent', so a failed request can't be mistaken for a link having gone
+  // out. See api/signin.ts for what actually decides sent vs waitlisted.
+  async function requestSignIn(email: string): Promise<{ status: 'sent' | 'waitlisted' | 'error'; message?: string }> {
+    try {
+      const res = await fetch('/api/signin', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json()) as { status: 'sent' | 'waitlisted' | 'error'; message?: string };
+      return data;
+    } catch (err) {
+      console.error('requestSignIn failed', err);
+      return { status: 'error', message: 'Something went wrong — try again' };
+    }
   }
 
   async function signOut(): Promise<void> {
@@ -105,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ready,
     isPersistent: user ? user.is_anonymous === false : false,
     email: user?.is_anonymous === false ? (user.email ?? null) : null,
-    signInWithOtp,
+    requestSignIn,
     signOut,
   };
 

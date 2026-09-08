@@ -15,6 +15,7 @@ import { OrganizerPanel } from '../components/detail/OrganizerPanel';
 import { CancelledPanel } from '../components/detail/CancelledPanel';
 import { SplitBillPayPanel } from '../components/detail/SplitBillPayPanel';
 import { SplitBillProgressPanel } from '../components/detail/SplitBillProgressPanel';
+import { WaitlistInlinePrompt } from '../components/WaitlistInlinePrompt';
 
 function gateKey(gatheringId: string) {
   return `komon-gate-${gatheringId}`;
@@ -184,6 +185,11 @@ export function Detail() {
           )}
         </div>
       </div>
+
+      {/* Invitation, never a gate — RSVPing/paying above works fully
+          without an account. Guests only (a signed-in organizer viewing
+          their own gathering doesn't need inviting to the waitlist). */}
+      {!isPersistent && <WaitlistInlinePrompt />}
     </div>
   );
 }
