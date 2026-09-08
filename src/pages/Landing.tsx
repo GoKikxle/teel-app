@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Menu } from '@base-ui/react/menu';
 import { Logo } from '../components/Logo';
 import { WaitlistModal } from '../components/WaitlistModal';
 
@@ -39,6 +40,25 @@ export function Landing() {
           <button className="waitlist-topbar-cta" onClick={() => setModalOpen(true)}>
             Join our waitlist
           </button>
+          {/* Mobile only (see index.css's (max-width: 430px) block, which
+              hides .waitlist-topbar-signin and shows this instead) — reuses
+              Nav.tsx's own Menu.Root/Trigger/Portal/Popup pattern (Base UI)
+              rather than a bespoke dropdown, for the same accessible
+              open/close-on-outside-click/Escape behavior for free. */}
+          <Menu.Root>
+            <Menu.Trigger className="waitlist-topbar-mobile-trigger" aria-label="Menu">
+              <img src="/icons/board/menu-alt.svg" alt="" width={24} height={24} />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner sideOffset={8} align="end">
+                <Menu.Popup className="waitlist-mobile-menu">
+                  <Menu.Item className="waitlist-mobile-menu-item" onClick={() => navigate('/signin')}>
+                    Sign in
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
         </div>
       </header>
 

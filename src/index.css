@@ -845,13 +845,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   border: 1px solid #f6f7f9;
   border-radius: 16px;
   padding: 16px;
-  width: 346px;
+  width: 420px;
   max-width: calc(100% - 32px);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* The card's own fixed width (deliberately not full-width — see the
+     comment further down) can still end up narrower than logo + actions
+     combined at some in-between viewport widths. flex-wrap here (not on
+     .waitlist-topbar-actions below) means when that happens, the whole
+     actions group wraps as one unit onto its own row below the logo,
+     rather than "Sign in" and "Join our waitlist" splitting apart from
+     each other mid-group. */
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
-.waitlist-topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+/* nowrap is deliberate: "Sign in" and "Join our waitlist" either both fit
+   next to the logo, or both wrap down together (see .waitlist-topbar's own
+   flex-wrap above) — they never split onto separate lines from each other. */
+.waitlist-topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; justify-content: flex-end; }
 .waitlist-topbar-cta {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
@@ -882,6 +894,30 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   white-space: nowrap;
 }
 .waitlist-topbar-signin:hover { color: var(--ink); }
+
+/* Mobile-only hamburger trigger for "Sign in" — hidden here, shown at the
+   (max-width: 430px) breakpoint below in place of the text link (which
+   gets hidden there instead), same swap Nav.tsx does between
+   .board-nav-actions and .board-nav-mobile-trigger. Reuses the Menu
+   component/pattern from @base-ui/react/menu (see Nav.tsx's own trigger +
+   Landing.tsx's JSX) rather than a bespoke dropdown, for the same
+   accessible open/close-on-outside-click/Escape behavior for free — but
+   with its own small anchored-popup styling (sized/positioned like
+   .account-trigger + .account-dropdown, not Nav's viewport-fixed full-
+   width .mobile-nav-positioner, since this trigger sits inside a floating
+   card rather than a fixed top bar). */
+.waitlist-topbar-mobile-trigger { display: none; background: none; border: none; cursor: pointer; padding: 4px; flex-shrink: 0; }
+.waitlist-mobile-menu {
+  background: #fff; border: 1px solid #f0f0f0; border-radius: 10px;
+  box-shadow: 0 2px 21px rgba(0, 0, 0, .06); padding: 4px; min-width: 140px;
+  animation: riseIn .15s var(--ease);
+}
+.waitlist-mobile-menu-item {
+  display: flex; align-items: center; width: 100%; padding: 9px 12px; border-radius: 8px;
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
+  background: none; border: none; cursor: pointer; text-align: left;
+}
+.waitlist-mobile-menu-item:hover { background: #f4f2ee; }
 
 .waitlist-headline {
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -1013,6 +1049,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   .waitlist-page { padding: 30px 24px 24px; }
 
   .waitlist-topbar { width: 313px; max-width: 100%; }
+  .waitlist-topbar-signin { display: none; }
+  .waitlist-topbar-mobile-trigger { display: inline-flex; }
 
   .waitlist-headline {
     width: 313px;
