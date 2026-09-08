@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { WaitlistModal } from '../components/WaitlistModal';
 
@@ -19,15 +20,26 @@ const HERO_AVATARS = [
 // the waitlist (via the header CTA, opening WaitlistModal) is the only
 // action available here — no quiet way back into the live create flow.
 export function Landing() {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <div className="waitlist-page">
       <header className="waitlist-topbar">
         <Logo />
-        <button className="waitlist-topbar-cta" onClick={() => setModalOpen(true)}>
-          Join our waitlist
-        </button>
+        <div className="waitlist-topbar-actions">
+          {/* Quiet, secondary next to "Join our waitlist" — most visitors
+              here aren't approved yet, so that stays the primary CTA. This
+              is just the missing way back in for the ones who are (see
+              useCreateGate's own redirect for the only other path to
+              /signin, which never fires from this page). */}
+          <button type="button" className="waitlist-topbar-signin" onClick={() => navigate('/signin')}>
+            Sign in
+          </button>
+          <button className="waitlist-topbar-cta" onClick={() => setModalOpen(true)}>
+            Join our waitlist
+          </button>
+        </div>
       </header>
 
       <h1 className="waitlist-headline">Small gatherings, sorted.</h1>

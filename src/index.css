@@ -851,6 +851,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   align-items: center;
   justify-content: space-between;
 }
+.waitlist-topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 .waitlist-topbar-cta {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
@@ -865,6 +866,22 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   white-space: nowrap;
 }
 .waitlist-topbar-cta:hover { background: var(--accent-strong); }
+/* Plain text link, no button chrome — deliberately quieter than the pill
+   CTA above, since most first-time visitors here aren't approved yet and
+   "Join our waitlist" should still read as the primary action. */
+.waitlist-topbar-signin {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  padding: 10px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.waitlist-topbar-signin:hover { color: var(--ink); }
 
 .waitlist-headline {
   font-family: 'Plus Jakarta Sans', sans-serif;
