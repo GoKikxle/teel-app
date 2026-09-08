@@ -1,6 +1,6 @@
-// Vercel serverless function (Node runtime) — the ONLY place in this app
-// that's allowed to call Supabase's signInWithOtp. POST /api/signin
-// { email: string } -> { status: 'sent' | 'waitlisted' | 'error', message?: string }.
+// Vercel Edge Function — the ONLY place in this app that's allowed to call
+// Supabase's signInWithOtp. POST /api/signin { email: string } ->
+// { status: 'sent' | 'waitlisted' | 'error', message?: string }.
 //
 // Why this exists: the client used to call checkWaitlistApproval() (a
 // public RPC, is_waitlist_approved() — see 0008_waitlist_grandfather.sql)
@@ -15,14 +15,26 @@
 // the client now POSTs { email } to this route and never calls
 // signInWithOtp itself (see useAuth.tsx's requestSignIn).
 //
+// Bug fix: this was originally written with the Web-standard
+// `(request: Request) => Promise<Response>` signature but no explicit
+// `config.runtime`, so Vercel built it as a Node.js Function — which
+// expects the legacy `(req, res) => void` signature (write to `res`,
+// don't return a value). Every `return new Response(...)` below was
+// silently dropped as a result, so no response ever reached the client;
+// every request just hung until Vercel's own 300s timeout killed it. The
+// `export const config` below opts this into the Edge runtime instead,
+// which natively expects exactly the Request/Response signature this
+// file already uses — no rewrite of the handler itself needed.
+//
 // Uses @supabase/supabase-js rather than raw fetch (unlike
-// middleware.ts/poll-link-preview.ts) — this runs on the Node runtime, not
-// Edge, so the SDK's edge-safety caveat doesn't apply, and reusing it here
-// means the actual signInWithOtp call is byte-for-byte the same shape the
-// client used to make (same options), rather than a hand-rolled
-// reimplementation of GoTrue's wire format that could subtly drift from
-// it (e.g. getting the redirect option's request shape wrong in a way
-// that silently breaks the emailed link).
+// middleware.ts/poll-link-preview.ts) — unlike @vercel/og (see the
+// archived poll-keepsake feature), this SDK is genuinely isomorphic and
+// runs fine on Edge, so reusing it here means the actual signInWithOtp
+// call is byte-for-byte the same shape the client used to make (same
+// options), rather than a hand-rolled reimplementation of GoTrue's wire
+// format that could subtly drift from it (e.g. getting the redirect
+// option's request shape wrong in a way that silently breaks the
+// emailed link).
 //
 // Requires SUPABASE_SERVICE_ROLE_KEY in addition to the existing
 // VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY — set it in the Vercel
@@ -41,6 +53,8 @@
 // { status: 'waitlisted' }, so this can't be used to probe who has
 // attempted to sign in before.
 import { createClient } from '@supabase/supabase-js';
+
+export const config = { runtime: 'edge' };
 
 declare const process: { env: Record<string, string | undefined> };
 
