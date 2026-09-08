@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { checkWaitlistApproval } from '../data/waitlist';
 
-type Stage = 'form' | 'sent' | 'notApproved';
+type Stage = 'form' | 'sent' | 'waitlisted';
 
 // Figma 1157:3070 "Sign in" — standalone page, not a modal (replaces the
 // old SignInModal.tsx). Reached via useCreateGate's requestCreate() or a
@@ -18,7 +17,7 @@ export function SignIn() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next') || '/';
-  const { isPersistent, signInWithOtp } = useAuth();
+  const { isPersistent, requestSignIn } = useAuth();
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [stage, setStage] = useState<Stage>('form');
@@ -36,34 +35,18 @@ export function SignIn() {
       return;
     }
     setSending(true);
-    try {
-      // Fail closed: any thrown error below (network failure, RPC error)
-      // lands in the catch block and stops here — signInWithOtp is never
-      // reached unless checkWaitlistApproval resolved true. A failed check
-      // is never treated as an approval.
-      //
-      // Read-only: this never writes to waitlist. Joining the list is a
-      // separate, explicit action on the landing page's own form — an
-      // unapproved or unrecognized email here just gets turned away, not
-      // silently enrolled as a side effect of a failed sign-in attempt.
-      const approved = await checkWaitlistApproval(val);
-      if (!approved) {
-        setSending(false);
-        setStage('notApproved');
-        return;
-      }
-
-      const { error } = await signInWithOtp(val);
-      setSending(false);
-      if (error) {
-        toast(error);
-        return;
-      }
+    // The approval check and the decision to send a link or record a
+    // waitlist entry both happen server-side, in api/signin.ts — this just
+    // renders whichever of the two outcomes comes back. A failed request
+    // (status: 'error') is never treated as either.
+    const result = await requestSignIn(val);
+    setSending(false);
+    if (result.status === 'sent') {
       setStage('sent');
-    } catch (err) {
-      console.error(err);
-      setSending(false);
-      toast('Something went wrong — try again');
+    } else if (result.status === 'waitlisted') {
+      setStage('waitlisted');
+    } else {
+      toast(result.message || 'Something went wrong — try again');
     }
   }
 
@@ -78,13 +61,10 @@ export function SignIn() {
               automatically.
             </p>
           </>
-        ) : stage === 'notApproved' ? (
+        ) : stage === 'waitlisted' ? (
           <>
-            <h1 className="signin-heading">You're not on the approved list yet</h1>
-            <p className="signin-lede">
-              Komon is invite-only for now, and {email} hasn't been approved. If you haven't already, join the
-              waitlist from the homepage — we'll email you once you're in.
-            </p>
+            <h1 className="signin-heading">You're on the list</h1>
+            <p className="signin-lede">We'll email you when Komon opens up.</p>
           </>
         ) : (
           <>
