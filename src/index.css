@@ -193,13 +193,13 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 }
 .account-dropdown-email {
   display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px;
-  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
 }
 .account-dropdown-email span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-dropdown-logout {
   background: #fff; border: 1px solid #ede9e2; border-radius: 10px;
   padding: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
-  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
   cursor: pointer; width: 100%;
 }
 .account-dropdown-logout:hover { background: #fafafa; }
@@ -214,7 +214,7 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 }
 .mobile-nav-menu-item {
   display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 16px;
-  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; line-height: 22px; color: #262728;
   background: none; border: none; cursor: pointer; text-align: left;
 }
 .mobile-nav-menu-email { justify-content: flex-start; cursor: default; }
@@ -765,7 +765,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-opt.chosen .poll-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
 .poll-track { flex: 1; background: #f5f5f5; border-radius: 8px; height: 8px; position: relative; overflow: hidden; }
 .poll-fill { background: var(--accent); height: 100%; border-radius: 8px; transition: width .3s; }
-.poll-count { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #6b6b6b; min-width: 16px; text-align: right; }
+.poll-count { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #6b6b6b; min-width: 16px; text-align: right; }
 
 .share-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .share-row input { font-size: 13px; }
@@ -839,49 +839,98 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   padding: 30px 20px 40px;
 }
 
+/* Wraps the topbar card — sized to the same content column as
+   .waitlist-hero-group, per the "Updated nav bar" Figma section (node
+   1221:1278), where the nav's menu-item spans the exact same width as the
+   hero photo card. (The mobile drawer that drops below it on open is a
+   sibling of this, not nested inside — see updateDrawerRect in
+   Landing.tsx and .waitlist-mobile-drawer-positioner below for why.) */
+.waitlist-topbar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 743px;
+  max-width: calc(100% - 32px);
+}
 .waitlist-topbar {
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, .8);
   border: 1px solid #f6f7f9;
   border-radius: 16px;
   padding: 16px;
-  width: 346px;
-  max-width: calc(100% - 32px);
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.waitlist-topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.waitlist-topbar-actions { display: flex; align-items: center; gap: 16px; justify-content: flex-end; }
+
+/* Solid pills, same shape/type for both — Figma's "Updated nav bar" section
+   makes "Sign in" a black pill matching "Join waitlist", not a plain text
+   link (the old treatment this replaces). */
+.waitlist-topbar-signin,
 .waitlist-topbar-cta {
-  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 22px;
   color: #fff;
-  background: var(--accent);
   border: none;
   border-radius: 100px;
   padding: 10px 16px;
   cursor: pointer;
   white-space: nowrap;
 }
+.waitlist-topbar-signin { background: #111; }
+.waitlist-topbar-signin:hover { background: var(--ink-hover); }
+.waitlist-topbar-cta { background: var(--accent); }
 .waitlist-topbar-cta:hover { background: var(--accent-strong); }
-/* Plain text link, no button chrome — deliberately quieter than the pill
-   CTA above, since most first-time visitors here aren't approved yet and
-   "Join our waitlist" should still read as the primary action. */
-.waitlist-topbar-signin {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 22px;
-  color: var(--ink-soft);
-  background: none;
-  border: none;
-  padding: 10px 4px;
-  cursor: pointer;
-  white-space: nowrap;
+
+/* Mobile only — see the (max-width: 430px) block below, which hides
+   .waitlist-topbar-signin from the row above and shows this instead. Same
+   icon asset (public/icons/board/menu-alt.svg, id "ci:menu-alt-01") Nav.tsx
+   already uses for its own mobile trigger; src swaps to close-md.svg while
+   open (also already used elsewhere at 24px — see QRModal.tsx/Board.tsx). */
+.waitlist-topbar-mobile-trigger { display: none; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
+
+/* Positions the Base UI Menu.Popup as a full-width card below the topbar,
+   overlapping the headline beneath it while open — matches the Figma
+   frame exactly (the drawer's own height there exceeds the gap before the
+   headline). The --waitlist-drawer-* custom properties are set inline by
+   Landing.tsx (measured from .waitlist-topbar-wrap's actual page position)
+   since, unlike Nav.tsx's fixed-position mobile-nav-positioner, this
+   topbar isn't fixed — its offset can't be a constant. Kept on the
+   default document.body portal (not a custom container) — that's what
+   keeps outside-click dismissal working; a custom container broke it. */
+.waitlist-mobile-drawer-positioner {
+  position: absolute !important;
+  top: var(--waitlist-drawer-top) !important;
+  left: var(--waitlist-drawer-left) !important;
+  width: var(--waitlist-drawer-width) !important;
+  right: auto !important;
+  transform: none !important;
+  z-index: 5;
 }
-.waitlist-topbar-signin:hover { color: var(--ink); }
+.waitlist-mobile-drawer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 24px;
+  border-radius: 12px;
+  background: #fff;
+  /* Figma's "Drop Shadow/100" token — no existing shared shadow variable
+     matches it (--elevation-1/2/3 are all larger/softer), so hardcoded. */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .19);
+}
+/* Full-width variant of .waitlist-topbar-signin for inside the drawer.
+   Figma's mobile instance reads #1D2129 for this pill, but that's drift
+   from the desktop version (#111) — intentionally normalized here. */
+.waitlist-mobile-signin { width: 100%; }
 
 .waitlist-headline {
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -944,7 +993,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .waitlist-avatar {
   width: 32px; height: 32px; border-radius: 96px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; line-height: 20px; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 500; line-height: 20px; color: #fff;
   margin-right: -8px;
 }
 .waitlist-avatar:last-child { margin-right: 0; }
@@ -986,7 +1035,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; line-height: 22px; color: #0f1010; margin-bottom: 8px; letter-spacing: normal;
 }
 .waitlist-modal-field input {
-  font-family: 'Inter', sans-serif; font-size: 14px; line-height: 22px; color: #0f1010;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 22px; color: #0f1010;
   background: #fff; border: 1px solid #ede9e2; border-radius: var(--radius-input); padding: 8px 12px; width: 100%;
 }
 .waitlist-modal-field input::placeholder { color: #c1c8d7; }
@@ -1012,7 +1061,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 @media (max-width: 430px) {
   .waitlist-page { padding: 30px 24px 24px; }
 
-  .waitlist-topbar { width: 313px; max-width: 100%; }
+  .waitlist-topbar-wrap { width: 100%; max-width: 100%; }
+  .waitlist-topbar-actions > .waitlist-topbar-signin { display: none; }
+  .waitlist-topbar-mobile-trigger { display: inline-flex; }
 
   .waitlist-headline {
     width: 313px;
@@ -1238,7 +1289,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .board-avatar {
   width: 24px; height: 24px; border-radius: 96px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; line-height: 20px; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 500; line-height: 20px; color: #fff;
   margin-right: -6px;
 }
 .board-avatar:last-child { margin-right: 0; }
