@@ -934,10 +934,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   gap: 24px;
   padding: 24px 16px;
   border-radius: 12px;
-  /* Figma's "Drop Shadow/100" token — no existing shared shadow variable
-     matches it (--elevation-1/2/3 are all larger/softer), so hardcoded. */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .19);
-}
+}  
 /* Full-width variant of .waitlist-topbar-signin/.waitlist-topbar-cta for
    inside the menu. Figma's mobile "Sign in" instance reads #1D2129, but
    that's drift from the desktop pill (#111) — intentionally normalized
