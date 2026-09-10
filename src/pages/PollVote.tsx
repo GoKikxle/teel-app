@@ -157,8 +157,8 @@ export function PollVote() {
     <div className="wrap">
       <div className="poll-page-body">
       <div className={`panel poll-vote-panel poll-page-panel${justVoted ? ' locked' : ''}`}>
-        <h1>{poll.title}</h1>
         <PollStatusPill status={poll.status} />
+        <h1>{poll.title}</h1>
         <p className="lede">Voting as a guest, only the organizer sees your real name.</p>
 
         <div className="poll-vote-opts">
@@ -217,7 +217,7 @@ export function PollVote() {
               <div className="field">
                 <label>Add a message (optional)</label>
                 <p className="field-hint">Shown under your alias</p>
-                <textarea maxLength={120} placeholder="Team Girl! 💗" value={message} onChange={(e) => setMessage(e.target.value)} />
+                <textarea maxLength={120} placeholder="Team Komon" value={message} onChange={(e) => setMessage(e.target.value)} />
                 <div className="poll-char-count">{message.length}/120</div>
               </div>
             )}
