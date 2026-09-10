@@ -1,14 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu } from '@base-ui/react/menu';
+import { Dialog } from '@base-ui/react/dialog';
 import { Logo } from '../components/Logo';
 import { WaitlistModal } from '../components/WaitlistModal';
-
-interface DrawerRect {
-  top: number;
-  left: number;
-  width: number;
-}
 
 // Purely illustrative — matches the "Manchester hiking" notification card
 // in the "Komon waitlist Page" Figma frame exactly (names, initials, and
@@ -33,47 +27,33 @@ export function Landing() {
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [drawerRect, setDrawerRect] = useState<DrawerRect>({ top: 0, left: 0, width: 0 });
-  const topbarWrapRef = useRef<HTMLDivElement>(null);
-  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  // "Join waitlist" inside the mobile menu needs to close the menu first,
+  // then open WaitlistModal — not both at once (they'd visually stack) and
+  // not via a guessed setTimeout either. onOpenChangeComplete below fires
+  // once the menu's own close animation genuinely finishes, so this just
+  // remembers the request until that happens.
+  const [waitlistOpenPending, setWaitlistOpenPending] = useState(false);
 
-  // Measures .waitlist-topbar-wrap's own page position so the drawer
-  // (portaled to document.body, like Nav.tsx's own mobile menu — needed to
-  // keep that pattern's outside-click dismissal working, which broke when
-  // this was portaled into a custom container instead) can still render as
-  // a full-width card exactly below it. Unlike Nav.tsx's fixed-position
-  // mobile-nav-positioner (pinned to its always-fixed nav bar's constant
-  // height), this topbar scrolls with the page, so the offset is measured
-  // instead of hardcoded, and re-measured on resize while open.
-  function updateDrawerRect() {
-    const el = topbarWrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setDrawerRect({ top: rect.bottom + window.scrollY + 8, left: rect.left + window.scrollX, width: rect.width });
+  function handleSignInFromMenu() {
+    setMenuOpen(false);
+    navigate('/signin');
   }
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    window.addEventListener('resize', updateDrawerRect);
-    return () => window.removeEventListener('resize', updateDrawerRect);
-  }, [menuOpen]);
+  function handleJoinWaitlistFromMenu() {
+    setWaitlistOpenPending(true);
+    setMenuOpen(false);
+  }
 
-  function handleMenuOpenChange(open: boolean) {
-    if (open) {
-      updateDrawerRect();
-    } else {
-      // Base UI returns focus to the trigger on close by default, but
-      // that relies on floating-ui's own anchor tracking, which this
-      // drawer bypasses (position comes from updateDrawerRect above, not
-      // floating-ui) — so it's done explicitly here instead.
-      menuTriggerRef.current?.focus();
+  function handleMenuOpenChangeComplete(open: boolean) {
+    if (!open && waitlistOpenPending) {
+      setModalOpen(true);
+      setWaitlistOpenPending(false);
     }
-    setMenuOpen(open);
   }
 
   return (
     <div className="waitlist-page">
-      <div className="waitlist-topbar-wrap" ref={topbarWrapRef}>
+      <div className="waitlist-topbar-wrap">
         <header className="waitlist-topbar">
           <Logo />
           <div className="waitlist-topbar-actions">
@@ -85,59 +65,55 @@ export function Landing() {
             </button>
             {/* Mobile only (see index.css's (max-width: 430px) block, which
                 hides .waitlist-topbar-signin above and shows this instead)
-                — reuses Nav.tsx's own Menu.Root/Trigger/Portal/Popup/Item
-                pattern (Base UI) for the same accessible open/close-on-
-                outside-click/Escape behavior, rather than a bespoke
-                dropdown. Positioning (see updateDrawerRect above) is the
-                one thing that can't be reused verbatim from Nav.tsx's own
-                trigger, since that one anchors a fixed nav bar's height,
-                not this page's own scrolling topbar. */}
-            <Menu.Root open={menuOpen} onOpenChange={handleMenuOpenChange}>
-              <Menu.Trigger
-                ref={menuTriggerRef}
-                className="waitlist-topbar-mobile-trigger"
-                aria-label={menuOpen ? 'Close menu' : 'Menu'}
-              >
-                <img
-                  src={menuOpen ? '/icons/board/close-md.svg' : '/icons/board/menu-alt.svg'}
-                  alt=""
-                  width={24}
-                  height={24}
-                />
-              </Menu.Trigger>
-              <Menu.Portal>
-                <Menu.Positioner
-                  className="waitlist-mobile-drawer-positioner"
-                  style={
-                    {
-                      '--waitlist-drawer-top': `${drawerRect.top}px`,
-                      '--waitlist-drawer-left': `${drawerRect.left}px`,
-                      '--waitlist-drawer-width': `${drawerRect.width}px`,
-                    } as React.CSSProperties
-                  }
-                >
-                  <Menu.Popup className="waitlist-mobile-drawer">
-                    {/* Figma's drawer row is built from a shared "Menu /
-                        Item / Vertical / Navigation Item" component — the
-                        same primitive behind Nav.tsx's own
-                        .account-dropdown-logout / .mobile-nav-menu-item
-                        "Log out" rows — but this instance overrides it to
-                        a solid full-width pill (no icon/chevron), not
-                        their rectangular icon+text row style. Visual
-                        styling is new (.waitlist-topbar-signin /
-                        .waitlist-mobile-signin) to match that pill exactly;
-                        the Sign-in action and Menu.Item wiring are reused
-                        as-is. */}
-                    <Menu.Item
-                      className="waitlist-topbar-signin waitlist-mobile-signin"
-                      onClick={() => navigate('/signin')}
+                — a full-screen takeover per the "Mobile nav - sign in
+                updated" Figma frame (node 1227:1204), not the small
+                anchored drawer the previous version had here. Base UI's
+                Dialog (not Menu, which the previous drawer used) is the
+                right primitive for that: modal:true gives focus-trap,
+                document scroll lock, and outside-press dismissal for
+                free, with no anchoring/positioning logic needed at all —
+                unlike the drawer, which had to measure the topbar's own
+                page position by hand since it wasn't a full-screen shape. */}
+            <Dialog.Root
+              open={menuOpen}
+              onOpenChange={setMenuOpen}
+              onOpenChangeComplete={handleMenuOpenChangeComplete}
+            >
+              <Dialog.Trigger className="waitlist-topbar-mobile-trigger" aria-label="Menu">
+                <img src="/icons/board/menu-alt.svg" alt="" width={24} height={24} />
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Popup className="waitlist-mobile-menu-overlay" aria-label="Menu" aria-modal="true">
+                  <div className="waitlist-mobile-menu-header">
+                    <Logo />
+                    <Dialog.Close className="waitlist-topbar-mobile-trigger" aria-label="Close menu">
+                      <img src="/icons/board/close-md.svg" alt="" width={24} height={24} />
+                    </Dialog.Close>
+                  </div>
+                  <div className="waitlist-mobile-menu-buttons">
+                    {/* Same pill styling as the desktop actions row
+                        (.waitlist-topbar-signin / .waitlist-topbar-cta),
+                        just full-width — .waitlist-mobile-menu-pill only
+                        adds that. "Join waitlist" here is new: the old
+                        drawer only ever had "Sign in" in it. */}
+                    <button
+                      type="button"
+                      className="waitlist-topbar-signin waitlist-mobile-menu-pill"
+                      onClick={handleSignInFromMenu}
                     >
                       Sign in
-                    </Menu.Item>
-                  </Menu.Popup>
-                </Menu.Positioner>
-              </Menu.Portal>
-            </Menu.Root>
+                    </button>
+                    <button
+                      type="button"
+                      className="waitlist-topbar-cta waitlist-mobile-menu-pill"
+                      onClick={handleJoinWaitlistFromMenu}
+                    >
+                      Join waitlist
+                    </button>
+                  </div>
+                </Dialog.Popup>
+              </Dialog.Portal>
+            </Dialog.Root>
           </div>
         </header>
       </div>

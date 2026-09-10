@@ -842,9 +842,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 /* Wraps the topbar card — sized to the same content column as
    .waitlist-hero-group, per the "Updated nav bar" Figma section (node
    1221:1278), where the nav's menu-item spans the exact same width as the
-   hero photo card. (The mobile drawer that drops below it on open is a
-   sibling of this, not nested inside — see updateDrawerRect in
-   Landing.tsx and .waitlist-mobile-drawer-positioner below for why.) */
+   hero photo card. */
 .waitlist-topbar-wrap {
   display: flex;
   flex-direction: column;
@@ -897,40 +895,54 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    open (also already used elsewhere at 24px — see QRModal.tsx/Board.tsx). */
 .waitlist-topbar-mobile-trigger { display: none; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
 
-/* Positions the Base UI Menu.Popup as a full-width card below the topbar,
-   overlapping the headline beneath it while open — matches the Figma
-   frame exactly (the drawer's own height there exceeds the gap before the
-   headline). The --waitlist-drawer-* custom properties are set inline by
-   Landing.tsx (measured from .waitlist-topbar-wrap's actual page position)
-   since, unlike Nav.tsx's fixed-position mobile-nav-positioner, this
-   topbar isn't fixed — its offset can't be a constant. Kept on the
-   default document.body portal (not a custom container) — that's what
-   keeps outside-click dismissal working; a custom container broke it. */
-.waitlist-mobile-drawer-positioner {
-  position: absolute !important;
-  top: var(--waitlist-drawer-top) !important;
-  left: var(--waitlist-drawer-left) !important;
-  width: var(--waitlist-drawer-width) !important;
-  right: auto !important;
-  transform: none !important;
-  z-index: 5;
-}
-.waitlist-mobile-drawer {
+/* Full-screen takeover, not a floating popup — background matches
+   .waitlist-page's own #f9f8f5 so it reads as the page itself taking
+   over, per the "Mobile nav - sign in updated" Figma frame (node
+   1227:1204). z-index/animation match the other full-screen overlays in
+   this file (.modal-backdrop, .waitlist-modal-backdrop). overflow-y: auto
+   is a defensive addition Figma doesn't show — belt-and-suspenders for
+   a phone short enough that 30px + two 42px-tall pills + gaps overflows. */
+.waitlist-mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #f9f8f5;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
+  padding: 30px 24px 24px;
+  overflow-y: auto;
+  animation: riseIn .2s var(--ease);
+}
+.waitlist-mobile-menu-header {
   width: 100%;
-  padding: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid #f6f7f9;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+.waitlist-mobile-menu-buttons {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 16px;
   border-radius: 12px;
-  background: #fff;
   /* Figma's "Drop Shadow/100" token — no existing shared shadow variable
      matches it (--elevation-1/2/3 are all larger/softer), so hardcoded. */
   box-shadow: 0 2px 8px rgba(0, 0, 0, .19);
 }
-/* Full-width variant of .waitlist-topbar-signin for inside the drawer.
-   Figma's mobile instance reads #1D2129 for this pill, but that's drift
-   from the desktop version (#111) — intentionally normalized here. */
-.waitlist-mobile-signin { width: 100%; }
+/* Full-width variant of .waitlist-topbar-signin/.waitlist-topbar-cta for
+   inside the menu. Figma's mobile "Sign in" instance reads #1D2129, but
+   that's drift from the desktop pill (#111) — intentionally normalized
+   here, same call made for the drawer version this replaces. */
+.waitlist-mobile-menu-pill { width: 100%; }
 
 .waitlist-headline {
   font-family: 'Plus Jakarta Sans', sans-serif;
