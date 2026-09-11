@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { WaitlistInlinePrompt } from '../components/WaitlistInlinePrompt';
 import {
   aliasLooksLikeRealName,
   castVote,
@@ -44,7 +42,6 @@ const DEFAULT_ALIAS_AVATAR = '🙂';
 // since there's no identity to check it against (v1 non-goal).
 export function PollVote() {
   const { id } = useParams<{ id: string }>();
-  const { isPersistent } = useAuth();
   const toast = useToast();
 
   const [poll, setPoll] = useState<AliasPoll | null>(null);
@@ -170,7 +167,6 @@ export function PollVote() {
           <PollWall votes={votes} />
         </div>
         </div>
-        {!isPersistent && <WaitlistInlinePrompt />}
       </div>
     );
   }
@@ -285,7 +281,6 @@ export function PollVote() {
         </div>
       )}
       </div>
-      {!isPersistent && <WaitlistInlinePrompt />}
     </div>
   );
 }
