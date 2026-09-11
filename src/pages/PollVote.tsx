@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import {
+  AliasTakenError,
   aliasLooksLikeRealName,
   castVote,
+  fetchMyVote,
   fetchPoll,
   fetchPollOptions,
   fetchPollVotesPublic,
@@ -12,7 +15,7 @@ import {
   guestCanSeeResults,
   wallUnlocked,
 } from '../data/polls';
-import type { AliasPoll, AliasPollOption, AliasPollVotePublic } from '../lib/database.types';
+import type { AliasPoll, AliasPollOption, AliasPollVote, AliasPollVotePublic } from '../lib/database.types';
 import { PollTally } from '../components/polls/PollTally';
 import { PollOptionBadge } from '../components/polls/PollOptionBadge';
 import { PollWall } from '../components/polls/PollWall';
@@ -38,10 +41,12 @@ const DEFAULT_ALIAS_AVATAR = '🙂';
 // Figma-less feature (built from the reviewed prototype) — Alias Polls'
 // guest-facing vote screen, mirroring Detail.tsx's shape (no account
 // required, fetch-once + refetch-after-write). Voting stays open the
-// whole time the poll is 'open' — no "you already voted" gate exists,
-// since there's no identity to check it against (v1 non-goal).
+// whole time the poll is 'open'; a guest can cast, then come back and
+// change, their vote any time before then — see myVote below and
+// castVote's own upsert shape in data/polls.ts.
 export function PollVote() {
   const { id } = useParams<{ id: string }>();
+  const { userId, ready: authReady } = useAuth();
   const toast = useToast();
 
   const [poll, setPoll] = useState<AliasPoll | null>(null);
@@ -49,6 +54,15 @@ export function PollVote() {
   const [votes, setVotes] = useState<AliasPollVotePublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+
+  // The guest's own previously-cast vote, if any — checked once auth
+  // resolves (below), independent of the main load() above. Non-null
+  // seeds the ballot with what they already picked instead of a blank
+  // form, and is what turns "Cast vote" into "Update vote" — this is the
+  // fix for refreshing right after voting dropping the guest into what
+  // looked like a fresh, unvoted ballot.
+  const [myVote, setMyVote] = useState<AliasPollVote | null>(null);
+  const [myVoteChecked, setMyVoteChecked] = useState(false);
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [voterName, setVoterName] = useState('');
@@ -58,7 +72,6 @@ export function PollVote() {
   const [aliasName, setAliasName] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [justVoted, setJustVoted] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -81,7 +94,40 @@ export function PollVote() {
     load();
   }, [load]);
 
-  if (loading) {
+  // Waits for authReady rather than firing the moment userId is (still)
+  // null — that flag only ever settles once (see useAuth.tsx's own
+  // bootstrap timeout), and if it settles with no userId at all (total
+  // auth failure), this still stops waiting instead of hanging the ballot
+  // in a perpetual loading state; there's just nothing to check in that
+  // case, same as a first-time visitor.
+  useEffect(() => {
+    if (!id || !authReady) return;
+    if (!userId) {
+      setMyVoteChecked(true);
+      return;
+    }
+    let mounted = true;
+    fetchMyVote(id, userId)
+      .then((v) => {
+        if (!mounted) return;
+        setMyVote(v);
+        if (v) {
+          setSelectedOption(v.option_id);
+          setVoterName(v.real_name);
+          setAliasName(v.alias);
+          setMessage(v.message || '');
+        }
+      })
+      .catch((err) => console.error(err))
+      .finally(() => {
+        if (mounted) setMyVoteChecked(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [id, authReady, userId]);
+
+  if (loading || !myVoteChecked) {
     return (
       <div className="wrap">
         <p className="lede">Loading…</p>
@@ -112,6 +158,7 @@ export function PollVote() {
 
   const nudge = aliasLooksLikeRealName(voterName, aliasName);
   const canSubmit = Boolean(selectedOption) && voterName.trim().length > 0 && aliasName.trim().length > 0;
+  const hasVoted = myVote !== null;
 
   async function handleSubmit() {
     if (!selectedOption) return;
@@ -121,21 +168,36 @@ export function PollVote() {
       toast("Add your name and an alias first — your name stays private, only the alias is shown.");
       return;
     }
+    if (!userId) {
+      toast('Still setting things up — try again in a moment');
+      return;
+    }
     setSubmitting(true);
     try {
       await castVote({
         pollId: id!,
+        voterUserId: userId,
         optionId: selectedOption,
         realName: name,
         alias: displayAlias,
         aliasAvatar: DEFAULT_ALIAS_AVATAR,
         message: poll!.allow_messages ? message.trim() || null : null,
       });
-      setJustVoted(true);
+      toast(hasVoted ? 'Vote updated!' : 'Your vote is in!');
       load();
+      // load() above only refreshes the public tally — this refreshes
+      // myVote too, so hasVoted (and the pre-filled fields, if this was a
+      // change rather than a first vote) reflect what was just cast
+      // immediately rather than on the next full page load.
+      const fresh = await fetchMyVote(id!, userId);
+      setMyVote(fresh);
     } catch (err) {
-      console.error(err);
-      toast('Could not cast your vote — try again');
+      if (err instanceof AliasTakenError) {
+        toast(err.message);
+      } else {
+        console.error(err);
+        toast(`Could not ${hasVoted ? 'update' : 'cast'} your vote — try again`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -178,11 +240,20 @@ export function PollVote() {
   return (
     <div className="wrap">
       <div className="poll-page-body">
-      <div className={`panel poll-vote-panel poll-page-panel${justVoted ? ' locked' : ''}`}>
+      <div className="panel poll-vote-panel poll-page-panel">
         <PollStatusPill status={poll.status} />
         <h1>{poll.title}</h1>
-        <p className="lede">Voting as a guest, only the organizer sees your real name.</p>
+        <p className="lede">
+          {hasVoted
+            ? "You're in — change your pick or details any time before the poll closes."
+            : 'Voting as a guest, only the organizer sees your real name.'}
+        </p>
 
+        {/* Selectable (never disabled) even after voting — a guest can
+            change their pick any time before the poll closes, not just
+            cast it once. castVote's own upsert is what makes resubmitting
+            here update the existing vote instead of creating a second
+            one. */}
         <div className="poll-vote-opts">
           {options.map((opt) => (
             <div className="poll-vote-opt-row" key={opt.id}>
@@ -190,7 +261,6 @@ export function PollVote() {
                 type="button"
                 className={`poll-vote-opt${selectedOption === opt.id ? ' selected' : ''}`}
                 onClick={() => setSelectedOption(opt.id)}
-                disabled={justVoted}
               >
                 <PollOptionBadge option={opt} className="poll-vote-opt-badge" />
                 <span className="poll-vote-opt-label">{opt.label}</span>
@@ -211,47 +281,49 @@ export function PollVote() {
           ))}
         </div>
 
-        {!justVoted && (
-          <>
-            <div className="field" style={{ marginTop: 18 }}>
-              <label>Your name</label>
-              <p className="field-hint">Only the Organizer sees this</p>
-              <input type="text" placeholder="e.g Janet Lewis" value={voterName} onChange={(e) => setVoterName(e.target.value)} />
-            </div>
+        {/* Stays visible (and pre-filled from myVote, see the effect
+            above) after voting rather than hiding — same reasoning as the
+            options above: refreshing right after voting used to drop the
+            guest into what looked like a fresh, unvoted ballot, and
+            hiding this once voted would still leave no way to act on the
+            "change your vote" copy above. */}
+        <div className="field" style={{ marginTop: 18 }}>
+          <label>Your name</label>
+          <p className="field-hint">Only the Organizer sees this</p>
+          <input type="text" placeholder="e.g Janet Lewis" value={voterName} onChange={(e) => setVoterName(e.target.value)} />
+        </div>
 
-            <div className="field">
-              <label>Your alias / nick name</label>
-              <p className="field-hint">This is how you will appear to everyone else</p>
-              <input type="text" maxLength={40} placeholder="e.g Sponge Bob" value={aliasName} onChange={(e) => setAliasName(e.target.value)} />
-            </div>
-            {/* No concrete Figma spec found for this nudge's styling in the
-                fetched frames — kept the same trigger logic, restyled to a
-                restrained inline note (muted text + small icon) instead of
-                the old bright amber box, consistent with this redesigned
-                form. Flagged as an assumption. */}
-            {nudge && (
-              <p className="poll-alias-nudge">
-                <span aria-hidden="true">ⓘ</span> That looks like it might be your real name — guests on the wall will see this alias.
-              </p>
-            )}
-
-            {poll.allow_messages && (
-              <div className="field">
-                <label>Add a message (optional)</label>
-                <p className="field-hint">Shown under your alias</p>
-                <textarea maxLength={120} placeholder="Team Komon" value={message} onChange={(e) => setMessage(e.target.value)} />
-                <div className="poll-char-count">{message.length}/120</div>
-              </div>
-            )}
-
-            <button className="primary-btn" onClick={handleSubmit} disabled={!canSubmit || submitting}>
-              {submitting ? 'Casting…' : 'Cast vote'}
-            </button>
-          </>
+        <div className="field">
+          <label>Your alias / nick name</label>
+          <p className="field-hint">This is how you will appear to everyone else</p>
+          <input type="text" maxLength={40} placeholder="e.g Sponge Bob" value={aliasName} onChange={(e) => setAliasName(e.target.value)} />
+        </div>
+        {/* No concrete Figma spec found for this nudge's styling in the
+            fetched frames — kept the same trigger logic, restyled to a
+            restrained inline note (muted text + small icon) instead of
+            the old bright amber box, consistent with this redesigned
+            form. Flagged as an assumption. */}
+        {nudge && (
+          <p className="poll-alias-nudge">
+            <span aria-hidden="true">ⓘ</span> That looks like it might be your real name — guests on the wall will see this alias.
+          </p>
         )}
+
+        {poll.allow_messages && (
+          <div className="field">
+            <label>Add a message (optional)</label>
+            <p className="field-hint">Shown under your alias</p>
+            <textarea maxLength={120} placeholder="Team Komon" value={message} onChange={(e) => setMessage(e.target.value)} />
+            <div className="poll-char-count">{message.length}/120</div>
+          </div>
+        )}
+
+        <button className="primary-btn" onClick={handleSubmit} disabled={!canSubmit || submitting}>
+          {submitting ? (hasVoted ? 'Updating…' : 'Casting…') : hasVoted ? 'Update vote' : 'Cast vote'}
+        </button>
       </div>
 
-      {justVoted && (
+      {hasVoted && (
         <div className="panel poll-vote-panel poll-page-panel">
           <div className="poll-confirm-banner">
             <img src="/icons/shared/checkbox-active.svg" alt="" width={24} height={24} className="poll-confirm-tick" />

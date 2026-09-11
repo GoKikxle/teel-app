@@ -349,15 +349,35 @@ export async function fetchPollVotesPublic(pollId: string): Promise<AliasPollVot
 
 // Organizer-only, including real_name — goes through the SECURITY DEFINER
 // RPC (get_alias_poll_votes) rather than selecting alias_poll_votes
-// directly, since that table has no select policy of its own at all.
+// directly, since that table has no general select policy (only the
+// narrow, own-row-only one fetchMyVote uses below).
 export async function fetchPollVotesForOrganizer(pollId: string): Promise<AliasPollVote[]> {
   const { data, error } = await supabase.rpc('get_alias_poll_votes', { poll_id_arg: pollId });
   if (error) throw error;
   return ((data ?? []) as AliasPollVote[]).slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
+// A guest's own vote, if they have one — read directly from the base
+// table (not the public view, which has no real_name column and isn't
+// scoped to "mine" anyway) via alias_poll_votes_select_own
+// (0013_alias_poll_votes_identity.sql), which only ever returns the
+// caller's own row. Lets PollVote.tsx show a returning guest their
+// already-cast vote (and the poll's current progress) instead of a blank
+// ballot after a refresh, and seeds the form for editing it.
+export async function fetchMyVote(pollId: string, voterUserId: string): Promise<AliasPollVote | null> {
+  const { data, error } = await supabase
+    .from('alias_poll_votes')
+    .select('*')
+    .eq('poll_id', pollId)
+    .eq('voter_user_id', voterUserId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as AliasPollVote | null;
+}
+
 export interface CastVoteInput {
   pollId: string;
+  voterUserId: string;
   optionId: string;
   realName: string;
   alias: string;
@@ -365,16 +385,40 @@ export interface CastVoteInput {
   message: string | null;
 }
 
+// Thrown specifically when the (poll_id, alias) unique constraint fires —
+// i.e. some OTHER voter in this poll already has this exact alias, not
+// this guest's own row (see the migration's own comment on why an
+// upsert can never conflict with itself here). Lets the caller show a
+// friendly, specific message instead of the generic pollErrorToast one.
+export class AliasTakenError extends Error {}
+
+// Upsert, not insert: the first call for a given (poll, guest) creates
+// the vote, any call after that updates it in place — same request
+// either way, since alias_poll_votes_poll_voter_unique
+// (0013_alias_poll_votes_identity.sql) is exactly the onConflict target
+// below. That's what lets a guest change their vote any time before the
+// poll closes (both RLS policies, insert_own and update_own, enforce the
+// same voter_user_id = auth.uid() + poll-still-open condition, so this
+// works identically whichever path Postgres takes).
 export async function castVote(input: CastVoteInput): Promise<void> {
-  const { error } = await supabase.from('alias_poll_votes').insert({
-    poll_id: input.pollId,
-    option_id: input.optionId,
-    real_name: input.realName,
-    alias: input.alias,
-    alias_avatar: input.aliasAvatar,
-    message: input.message,
-  });
-  if (error) throw error;
+  const { error } = await supabase.from('alias_poll_votes').upsert(
+    {
+      poll_id: input.pollId,
+      voter_user_id: input.voterUserId,
+      option_id: input.optionId,
+      real_name: input.realName,
+      alias: input.alias,
+      alias_avatar: input.aliasAvatar,
+      message: input.message,
+    },
+    { onConflict: 'poll_id,voter_user_id' }
+  );
+  if (error) {
+    if (error.code === '23505' && error.message.includes('alias_poll_votes_poll_alias_unique')) {
+      throw new AliasTakenError('That alias is already taken in this poll — try another.');
+    }
+    throw error;
+  }
 }
 
 export async function revealPoll(pollId: string): Promise<void> {
