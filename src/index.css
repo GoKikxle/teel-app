@@ -58,7 +58,14 @@
 @keyframes popIn { 0% { transform: scale(.6); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes shimmer { 0% { background-position: 150% 50%; } 100% { background-position: -50% 50%; } }
 
-html, body, #root { height: 100%; }
+/* overflow-x: hidden here is a safety net, not a fix for one specific
+   offender — testers reported mobile pages shifting/wobbling
+   horizontally, and this stops any single element that overflows the
+   viewport width (now or in some future change) from making the whole
+   page horizontally scrollable. Doesn't affect anything that scrolls
+   deliberately (e.g. .poll-tally-cols' own overflow-x: auto) — this only
+   clips at the document level. */
+html, body, #root { height: 100%; overflow-x: hidden; }
 /* #F4F2EE matches .board-page's own background exactly (index.css,
    grepped from source rather than eyeballed) — the corkboard dot-grid
    pattern is dropped app-wide in favor of the same flat background
@@ -294,9 +301,15 @@ h2 { font-weight: 600; font-size: 20px; line-height: 28px; letter-spacing: -.1px
 }
 .field { margin-bottom: 18px; }
 label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin-bottom: 6px; }
+/* font-size is 16px, not the 15px this used to be — iOS Safari (and some
+   Chrome/Android WebViews) auto-zooms the whole page in on focus for any
+   text input/textarea/select computed under 16px, then doesn't reliably
+   zoom back out. That's the most likely cause of the "mobile pages zoom
+   in and won't stay locked" reports: every text field in the app was
+   under that threshold. */
 input[type=text], input[type=email], input[type=number], input[type=date], input[type=time], select, textarea {
   width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--card);
-  font-family: inherit; font-size: 15px; color: var(--ink);
+  font-family: inherit; font-size: 16px; color: var(--ink);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
 /* Constrains the browser's free-form resize handle to vertical-only — the
@@ -768,7 +781,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .poll-count { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #6b6b6b; min-width: 16px; text-align: right; }
 
 .share-row { display: flex; gap: 8px; margin-bottom: 16px; }
-.share-row input { font-size: 13px; }
+/* Same 16px floor as the shared input[type=text] rule above, for the
+   same reason (auto-zoom-on-focus) — this field is readOnly, but a tap
+   still focuses it. */
+.share-row input { font-size: 16px; }
 .copy-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 8px; }
 /* Overrides .panel .btn-outline:hover's solid #1d2129 fill — that rule
    assumes text content whose color also flips to white on hover, but
