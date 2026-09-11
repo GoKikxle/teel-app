@@ -22,6 +22,13 @@ import { PollStatusPill } from '../components/polls/PollStatusPill';
 import { PollVoterRow } from '../components/polls/PollVoterRow';
 import { PollSharePanel } from '../components/polls/PollSharePanel';
 import { PollWinnerHero } from '../components/polls/PollWinnerHero';
+import { withTimeout } from '../lib/withTimeout';
+
+// A hung fetch (dead network, a backgrounded tab) used to leave `loading`
+// true forever with no error and no retry — the "poll dashboard gets
+// stuck on refresh" report. Bounding it turns that into a visible error
+// with a retry action instead.
+const LOAD_TIMEOUT_MS = 15000;
 
 // Figma-less feature (built from the reviewed prototype) — Alias Polls'
 // organizer screen. Ownership-gated the same way Edit.tsx gates gathering
@@ -39,18 +46,24 @@ export function PollOrganize() {
   const [options, setOptions] = useState<AliasPollOption[]>([]);
   const [votes, setVotes] = useState<AliasPollVote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [revealNames, setRevealNames] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
-    Promise.all([fetchPoll(id), fetchPollOptions(id), fetchPollVotesForOrganizer(id)])
+    setLoading(true);
+    setLoadError(false);
+    withTimeout(Promise.all([fetchPoll(id), fetchPollOptions(id), fetchPollVotesForOrganizer(id)]), LOAD_TIMEOUT_MS)
       .then(([p, opts, v]) => {
         setPoll(p);
         setOptions(opts);
         setVotes(v);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -66,6 +79,20 @@ export function PollOrganize() {
     return (
       <div className="wrap">
         <p className="lede">Loading…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="wrap">
+        <BackLink label="Board" onClick={() => navigate('/')} />
+        <p className="lede">
+          Couldn't load this poll.{' '}
+          <button type="button" className="link-btn" onClick={load}>
+            Try again
+          </button>
+        </p>
       </div>
     );
   }

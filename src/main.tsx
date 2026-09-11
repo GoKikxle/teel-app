@@ -4,14 +4,17 @@ import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import { ToastProvider } from './hooks/useToast.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </StrictMode>
 );
 
@@ -23,6 +26,23 @@ createRoot(document.getElementById('root')!).render(
 // bypass an active service worker the way it bypasses the HTTP cache.
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
+    // A tab left open across a deploy runs its original JS in memory
+    // indefinitely (nothing forces an SPA to re-fetch anything) while
+    // sw.js's own skipWaiting()/clients.claim() let a newer worker take
+    // over that same tab's future requests as soon as it's noticed —
+    // mismatched old-JS-new-worker was one plausible contributor to the
+    // "page just stops working, needs a hard refresh" reports. Reloading
+    // once when a new worker takes control gets that tab back onto the
+    // matching bundle automatically, closing the gap between "a deploy
+    // happened" and "the open tab actually has it." Guarded so a second
+    // controllerchange (e.g. yet another deploy before the reload even
+    // finishes) can't chain into a reload loop.
+    let reloadedForNewWorker = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloadedForNewWorker) return;
+      reloadedForNewWorker = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });

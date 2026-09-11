@@ -21,6 +21,13 @@ import { PollWall } from '../components/polls/PollWall';
 import { PollStatusPill } from '../components/polls/PollStatusPill';
 import { PollVoterRow } from '../components/polls/PollVoterRow';
 import { PollWinnerHero } from '../components/polls/PollWinnerHero';
+import { withTimeout } from '../lib/withTimeout';
+
+// A hung fetch (dead network, a backgrounded tab) used to leave `loading`
+// true forever with no error and no retry — reported as the guest voting
+// page "not fully loading." Bounding it turns that into a visible error
+// with a retry action instead.
+const LOAD_TIMEOUT_MS = 15000;
 
 // No emoji-avatar generation exists anymore (round 5 removed the alias
 // Shuffle/emoji UI — see the alias field below) but alias_avatar is still
@@ -44,6 +51,7 @@ export function PollVote() {
   const [options, setOptions] = useState<AliasPollOption[]>([]);
   const [votes, setVotes] = useState<AliasPollVotePublic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [voterName, setVoterName] = useState('');
@@ -57,13 +65,18 @@ export function PollVote() {
 
   const load = useCallback(() => {
     if (!id) return;
-    Promise.all([fetchPoll(id), fetchPollOptions(id), fetchPollVotesPublic(id)])
+    setLoading(true);
+    setLoadError(false);
+    withTimeout(Promise.all([fetchPoll(id), fetchPollOptions(id), fetchPollVotesPublic(id)]), LOAD_TIMEOUT_MS)
       .then(([p, opts, v]) => {
         setPoll(p);
         setOptions(opts);
         setVotes(v);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -75,6 +88,19 @@ export function PollVote() {
     return (
       <div className="wrap">
         <p className="lede">Loading…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="wrap">
+        <p className="lede">
+          Couldn't load this poll.{' '}
+          <button type="button" className="link-btn" onClick={load}>
+            Try again
+          </button>
+        </p>
       </div>
     );
   }
