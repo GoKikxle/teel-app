@@ -1581,12 +1581,6 @@ input.poll-opt-link-input {
 }
 .poll-char-count { font-size: 11px; color: #a79f91; text-align: right; margin-top: 4px; }
 
-/* Round 5: opacity applied via this class instead of an inline style, so
-   the post-vote "locked" treatment (Figma's exact 0.7, up from the
-   previous 0.55) is CSS-authored like every other state-based look on
-   this card. */
-.poll-vote-panel.locked { opacity: .7; }
-
 .poll-confirm-banner {
   display: flex; align-items: center; gap: 10px; background: rgba(255, 45, 85, .1); border-radius: 8px;
   padding: 13px 15px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; color: var(--ink);

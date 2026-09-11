@@ -168,7 +168,14 @@ export interface AliasPollVotePublic {
   created_at: string;
 }
 
-// Organizer-only shape — matches get_alias_poll_votes()'s return rows.
+// Organizer-only shape — matches get_alias_poll_votes()'s return rows
+// (setof alias_poll_votes, i.e. the whole base-table row). Also reused
+// as-is for a guest's own vote (fetchMyVote), which reads the base table
+// directly for exactly one row: their own, via alias_poll_votes_select_own
+// (0013_alias_poll_votes_identity.sql) — same full shape either way.
 export interface AliasPollVote extends AliasPollVotePublic {
   real_name: string;
+  /** Null on votes cast before 0013_alias_poll_votes_identity.sql added
+   *  this column — every vote cast from that migration on always sets it. */
+  voter_user_id: string | null;
 }
