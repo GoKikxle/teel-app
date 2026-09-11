@@ -57,6 +57,11 @@ function draftFromOption(o: AliasPollOption): DraftOption {
   };
 }
 
+// Product decision: 3, not the 5 an earlier round of this feature
+// targeted — "+ Add option" below disables itself once this is hit, same
+// spot removeOption already floors at 2 (options.length > 2 there).
+const MAX_POLL_OPTIONS = 3;
+
 // No duration-picker Figma frame exists for this — built from Komon's
 // existing .radio-group/.radio-chip pattern (Create.tsx's Split Method /
 // Pay Method pickers) instead. 4 presets; default 7 days in create mode.
@@ -131,6 +136,13 @@ export function PollCreate() {
         setOptions(opts.map(draftFromOption));
         setOptionsLocked(hasVotes);
         setCurrentClosesAt(p.closes_at);
+        // Seeds the same three state variables the create form's own
+        // toggles already use — the toggle-group JSX below no longer
+        // hides itself in edit mode, so these need real starting values
+        // instead of the create-mode defaults declared above.
+        setAllowMessages(p.allow_messages);
+        setSuspenseMode(p.suspense_mode);
+        setCommentsLive(p.comments_live);
       })
       .catch((err) => {
         console.error(err);
@@ -149,7 +161,7 @@ export function PollCreate() {
   }
 
   function addOption() {
-    setOptions((prev) => [...prev, newOption()]);
+    setOptions((prev) => (prev.length >= MAX_POLL_OPTIONS ? prev : [...prev, newOption()]));
   }
 
   function removeOption(key: string) {
@@ -258,6 +270,9 @@ export function PollCreate() {
       try {
         await updatePoll(id, {
           title: cleanTitle,
+          allowMessages,
+          suspenseMode,
+          commentsLive,
           options: optionsInput,
           // Omitted entirely (not just re-sent) when the organizer left
           // duration untouched — updatePoll only writes closes_at when
@@ -468,9 +483,11 @@ export function PollCreate() {
                     </div>
                   </div>
                 ))}
-                <button type="button" className="poll-add-opt" onClick={addOption}>
-                  + Add option
-                </button>
+                {options.length < MAX_POLL_OPTIONS && (
+                  <button type="button" className="poll-add-opt" onClick={addOption}>
+                    + Add option
+                  </button>
+                )}
               </>
             )}
 
@@ -495,38 +512,42 @@ export function PollCreate() {
               </div>
             </div>
 
-            {!isEditMode && (
-              <div className="toggle-group">
-                <PollToggleRow
-                  id="allowMsg"
-                  label="Let voters attach a message"
-                  hint={'Short note next to their vote — "Team Girl! 💗" — shown under their alias, never their name.'}
-                  checked={allowMessages}
-                  onChange={setAllowMessages}
-                />
-                <div className="toggle-row">
-                  <div>
-                    <div className="tlabel">Ask for a name before voting</div>
-                    <div className="tsub">Stops repeat votes and lets you know who's who. Only you ever see it.</div>
-                  </div>
-                  <Switch.Root checked disabled nativeButton render={<button type="button" />} className="switch on" aria-label="Ask for a name before voting (always on)" />
+            {/* Was create-mode only (!isEditMode) — these three carry no
+                vote-integrity risk (see updatePoll's own comment), so
+                there's no reason they were ever hidden after creation;
+                that gap was the "poll edit isn't fully functional" bug.
+                Always rendered now, seeded from the loaded poll in edit
+                mode by the fetch effect above. */}
+            <div className="toggle-group">
+              <PollToggleRow
+                id="allowMsg"
+                label="Let voters attach a message"
+                hint={'Short note next to their vote — "Team Girl! 💗" — shown under their alias, never their name.'}
+                checked={allowMessages}
+                onChange={setAllowMessages}
+              />
+              <div className="toggle-row">
+                <div>
+                  <div className="tlabel">Ask for a name before voting</div>
+                  <div className="tsub">Stops repeat votes and lets you know who's who. Only you ever see it.</div>
                 </div>
-                <PollToggleRow
-                  id="suspenseMode"
-                  label="Hide results until you reveal them"
-                  hint="Guests watch votes roll in but can't see the breakdown — you trigger the reveal moment when everyone's ready."
-                  checked={suspenseMode}
-                  onChange={setSuspenseMode}
-                />
-                <PollToggleRow
-                  id="commentsLive"
-                  label="Show comments & activity live"
-                  hint="Guests watch the message wall fill up as people vote. Turn off to reveal it all at once when you close the poll."
-                  checked={commentsLive}
-                  onChange={setCommentsLive}
-                />
+                <Switch.Root checked disabled nativeButton render={<button type="button" />} className="switch on" aria-label="Ask for a name before voting (always on)" />
               </div>
-            )}
+              <PollToggleRow
+                id="suspenseMode"
+                label="Hide results until you reveal them"
+                hint="Guests watch votes roll in but can't see the breakdown — you trigger the reveal moment when everyone's ready."
+                checked={suspenseMode}
+                onChange={setSuspenseMode}
+              />
+              <PollToggleRow
+                id="commentsLive"
+                label="Show comments & activity live"
+                hint="Guests watch the message wall fill up as people vote. Turn off to reveal it all at once when you close the poll."
+                checked={commentsLive}
+                onChange={setCommentsLive}
+              />
+            </div>
 
             <button className="primary-btn" style={{ marginTop: 22 }} onClick={handleSubmit} disabled={submitting}>
               {submitting ? (isEditMode ? 'Saving…' : 'Creating…') : isEditMode ? 'Save changes' : 'Create poll'}

@@ -13,7 +13,7 @@ import {
   formatCloseCountdown,
   formatDuration,
   pickBestMessages,
-  revealPoll,
+  setPollRevealed,
 } from '../data/polls';
 import type { AliasPoll, AliasPollOption, AliasPollVote } from '../lib/database.types';
 import { PollTally } from '../components/polls/PollTally';
@@ -47,7 +47,6 @@ export function PollOrganize() {
   const [votes, setVotes] = useState<AliasPollVote[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [revealNames, setRevealNames] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -115,14 +114,14 @@ export function PollOrganize() {
     );
   }
 
-  async function handleReveal() {
+  async function handleRevealChange(next: boolean) {
     setBusy(true);
     try {
-      await revealPoll(id!);
+      await setPollRevealed(id!, next);
       load();
     } catch (err) {
       console.error(err);
-      toast('Could not reveal results — try again');
+      toast(`Could not ${next ? 'reveal' : 'hide'} results — try again`);
     } finally {
       setBusy(false);
     }
@@ -167,7 +166,16 @@ export function PollOrganize() {
             <p className="poll-plain-note" style={{ marginTop: 8, marginBottom: 14 }}>
               {formatCloseCountdown(poll.closes_at).replace(/^./, (c) => c.toUpperCase())}
             </p>
-            <PollVoterRow votes={votes} showRealName={revealNames} />
+            {/* Always the real name, no gate — this is the organizer's own
+                page (ownership-checked above), and guests structurally
+                can't ever see this regardless: they only ever receive
+                AliasPollVotePublic, which has no real_name field at all
+                (see PollVote.tsx / alias_poll_votes_public). The "Reveal
+                real names" toggle this replaces controlled only this
+                screen's own display, never anything guest-facing — GDPR
+                exposure was already zero, but removed anyway per the
+                request to drop it. */}
+            <PollVoterRow votes={votes} showRealName />
             <PollTally options={options} votes={votes} hideTotal />
           </div>
 
@@ -178,45 +186,22 @@ export function PollOrganize() {
           <div className="panel poll-page-panel">
             <h2>Organizer controls</h2>
 
-            <div className="toggle-row">
-              <div className="toggle-row-label-wrap">
-                <div className="tlabel" id="reveal-names-label">
-                  Reveal real names
-                </div>
-                <InfoTooltip text="See who's behind each alias — only on this screen, never shown to guests." />
-              </div>
-              <Switch.Root
-                checked={revealNames}
-                onCheckedChange={setRevealNames}
-                nativeButton
-                render={<button type="button" />}
-                className={(state) => `switch${state.checked ? ' on' : ''}`}
-                aria-labelledby="reveal-names-label"
-              />
-            </div>
-
             {poll.suspense_mode && (
               <div className="toggle-row">
                 <div className="toggle-row-label-wrap">
                   <div className="tlabel" id="show-results-label">
                     Show results to guests
                   </div>
-                  <InfoTooltip text="They see the vote count ticking up, not the breakdown. Trigger the reveal when you're ready for the moment." />
+                  <InfoTooltip text="They see the vote count ticking up, not the breakdown. Toggle it on for the reveal moment — and back off again any time." />
                 </div>
-                {/* This still only ever fires forward — revealPoll() has no
-                    counterpart that flips revealed back to false, and that's
-                    correct product behavior (a one-time dramatic trigger,
-                    not a persistent setting). Rendered as a plain Switch to
-                    match "Reveal real names"'s row shape, but wired so it
-                    can only ever turn on: onCheckedChange only calls
-                    handleReveal when not already revealed, and it disables
-                    itself the instant that happens. */}
+                {/* Two-way now — was insert-only (setPollRevealed's own
+                    predecessor, revealPoll(), could only ever flip this
+                    true "by design"; that design call is what's being
+                    reversed here). */}
                 <Switch.Root
                   checked={poll.revealed}
-                  onCheckedChange={() => {
-                    if (!poll.revealed) handleReveal();
-                  }}
-                  disabled={poll.revealed || busy}
+                  onCheckedChange={handleRevealChange}
+                  disabled={busy}
                   nativeButton
                   render={<button type="button" />}
                   className={(state) => `switch${state.checked ? ' on' : ''}`}
@@ -240,7 +225,7 @@ export function PollOrganize() {
               <h2>Message Wall</h2>
               {!poll.comments_live && <span className="poll-hidden-tag">Hidden from guests</span>}
             </div>
-            <PollWall votes={votes} options={options} showRealName={revealNames} showVoteChip />
+            <PollWall votes={votes} options={options} showRealName showVoteChip />
           </div>
         </div>
       </div>
@@ -282,9 +267,12 @@ function PollWrapUp({
         <PollWinnerHero options={options} votes={votes} />
 
         {/* Voter avatar row capped at 4 here (Figma), vs. the live view's
-            default 5 — see PollVoterRow's max prop. */}
+            default 5 — see PollVoterRow's max prop. showRealName wasn't
+            passed here before, so this screen — also the organizer's own,
+            same as the live view above — silently showed aliases only;
+            fixed to match. */}
         <div className="poll-wrapup-meta">
-          <PollVoterRow votes={votes} max={4} />
+          <PollVoterRow votes={votes} max={4} showRealName />
           {voteCount > 0 && <span className="board-dot" />}
           <span className="poll-wrapup-duration">{duration} duration</span>
         </div>
@@ -304,7 +292,7 @@ function PollWrapUp({
         <p className="poll-wall-count">
           {messageCount} Message{messageCount === 1 ? '' : 's'}
         </p>
-        <PollWall votes={best} options={options} showVoteChip />
+        <PollWall votes={best} options={options} showRealName showVoteChip />
       </div>
 
       <div>
