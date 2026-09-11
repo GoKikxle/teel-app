@@ -247,6 +247,16 @@ export async function pollHasVotes(pollId: string): Promise<boolean> {
 
 export interface UpdatePollInput {
   title: string;
+  // Unlike options (locked once votes exist — see below), these three
+  // carry no vote-integrity risk: they're display/visibility settings, not
+  // the tally itself, so they stay editable for the life of the poll.
+  // Toggling allowMessages doesn't retroactively touch messages already
+  // left; toggling suspenseMode/commentsLive just changes what's visible
+  // from that point on (guestCanSeeResults/wallUnlocked read the current
+  // value live, there's nothing to reconcile).
+  allowMessages: boolean;
+  suspenseMode: boolean;
+  commentsLive: boolean;
   // Omitted entirely (not an empty array) when options are locked — the
   // caller decides via pollHasVotes, and this function never sends a
   // no-op options write in that case.
@@ -257,14 +267,20 @@ export interface UpdatePollInput {
   closesAt?: string;
 }
 
-// Question is always updatable; options are wholesale replaced (delete +
-// reinsert) only when input.options is provided, matching createPoll's
-// own insert-rows-with-position shape. Safe even if the client-side
-// pollHasVotes check were somehow stale, since RLS itself rejects both the
-// delete and the insert on alias_poll_options once any vote exists — see
+// Question and the three visibility toggles are always updatable; options
+// are wholesale replaced (delete + reinsert) only when input.options is
+// provided, matching createPoll's own insert-rows-with-position shape.
+// Safe even if the client-side pollHasVotes check were somehow stale,
+// since RLS itself rejects both the delete and the insert on
+// alias_poll_options once any vote exists — see
 // 0011_lock_poll_options_after_votes.sql.
 export async function updatePoll(pollId: string, input: UpdatePollInput): Promise<void> {
-  const pollPatch: { title: string; closes_at?: string } = { title: input.title };
+  const pollPatch: { title: string; closes_at?: string; allow_messages: boolean; suspense_mode: boolean; comments_live: boolean } = {
+    title: input.title,
+    allow_messages: input.allowMessages,
+    suspense_mode: input.suspenseMode,
+    comments_live: input.commentsLive,
+  };
   if (input.closesAt) pollPatch.closes_at = input.closesAt;
   const { error: pollError } = await supabase.from('alias_polls').update(pollPatch).eq('id', pollId);
   if (pollError) throw pollError;
@@ -377,8 +393,12 @@ export async function castVote(input: CastVoteInput): Promise<void> {
   if (error) throw error;
 }
 
-export async function revealPoll(pollId: string): Promise<void> {
-  const { error } = await supabase.from('alias_polls').update({ revealed: true }).eq('id', pollId);
+// Two-way now — "Show results to guests" toggles revealed on and off
+// freely (was insert-only: revealPoll() could only ever flip it true, by
+// product decision at the time; that decision is what's being reversed
+// here, not a bug in how it was built).
+export async function setPollRevealed(pollId: string, revealed: boolean): Promise<void> {
+  const { error } = await supabase.from('alias_polls').update({ revealed }).eq('id', pollId);
   if (error) throw error;
 }
 

@@ -824,6 +824,28 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .qr-modal-head h2 { flex: 1 0 0; margin: 0; }
 .qr-modal-close { background: none; border: none; cursor: pointer; padding: 0; display: flex; flex-shrink: 0; }
 
+/* Poll option image lightbox (PollOptionBadge.tsx) — same Dialog/
+   .modal-backdrop/.modal-viewport shell as QRModal above, own popup
+   class since this one's edge-to-edge image rather than a padded card.
+   No Figma spec — sized to comfortably fit most photos without ever
+   exceeding the viewport. */
+.poll-option-lightbox-card {
+  position: relative;
+  max-width: 480px;
+  width: 100%;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: riseIn .2s var(--ease) backwards;
+}
+.poll-option-lightbox-card img { display: block; width: 100%; max-height: 80vh; object-fit: contain; }
+.poll-option-lightbox-close {
+  position: absolute; top: 10px; right: 10px; z-index: 1;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #fff; border: none; box-shadow: var(--elevation-1);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
 /* Waitlist landing page — pulled from the "Komon waitlist Page" Figma frame
    (node 1028:1101). Full-bleed flat surface, not the corkboard dot-pattern
    body background, and not constrained by .wrap's 960px column — this page
@@ -1535,6 +1557,12 @@ input.poll-opt-link-input {
   display: flex; align-items: center; justify-content: center; font-size: 17px; overflow: hidden;
 }
 .poll-vote-opt-badge img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+/* Applied alongside whichever badge-shape class (.poll-vote-opt-badge,
+   .poll-tally-card-thumb-inner, .poll-winner-hero-thumb) is in play, only
+   when PollOptionBadge has an actual uploaded image to open in the
+   lightbox below — see that component's own comment for why. */
+.poll-opt-badge-clickable { cursor: pointer; }
+.poll-opt-badge-clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .poll-vote-opt-label { font-size: 14.5px; font-weight: 600; flex: 1; }
 .poll-vote-opt-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ede9e2; flex-shrink: 0; }
 .poll-vote-opt.selected .poll-vote-opt-dot { border-color: var(--accent); background: var(--accent); }
