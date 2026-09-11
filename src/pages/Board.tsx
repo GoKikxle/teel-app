@@ -8,6 +8,13 @@ import { BoardBillCard } from '../components/BoardBillCard';
 import { BoardPollCard } from '../components/BoardPollCard';
 import { useCreateGate } from '../hooks/useCreateGate';
 import { useAuth } from '../hooks/useAuth';
+import { withTimeout } from '../lib/withTimeout';
+
+// A hung fetch (dead network, a backgrounded tab) used to leave `loading`
+// true forever with no error and no retry — the "poll dashboard gets
+// stuck on refresh" report. Bounding it turns that into a visible error
+// with a retry action instead.
+const LOAD_TIMEOUT_MS = 15000;
 
 type TabKey = 'all' | 'split_bill' | 'event' | 'poll';
 
@@ -46,6 +53,8 @@ export function Board() {
   const [gatherings, setGatherings] = useState<GatheringWithRelations[]>([]);
   const [polls, setPolls] = useState<BoardPoll[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<TabKey>('all');
   // Mobile-only: which full-screen toolbar overlay (if any) is showing.
@@ -66,21 +75,26 @@ export function Board() {
   useEffect(() => {
     let mounted = true;
     if (!userId) return;
-    Promise.all([fetchBoardGatherings(), fetchBoardPolls(userId)])
+    setLoading(true);
+    setLoadError(false);
+    withTimeout(Promise.all([fetchBoardGatherings(), fetchBoardPolls(userId)]), LOAD_TIMEOUT_MS)
       .then(([g, p]) => {
         if (mounted) {
           setGatherings(g);
           setPolls(p);
         }
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        console.error(err);
+        if (mounted) setLoadError(true);
+      })
       .finally(() => {
         if (mounted) setLoading(false);
       });
     return () => {
       mounted = false;
     };
-  }, [userId]);
+  }, [userId, retryCount]);
 
   // The board only shows active items — gatherings and split bills share
   // the same cancelled_at mechanism, so one filter covers both. Closed
@@ -128,7 +142,8 @@ export function Board() {
     );
   }, [kindFiltered, query]);
 
-  // Grouped by date for the pill headers + timeline, most-upcoming first.
+  // Grouped by date for the pill headers + timeline, most-recent first —
+  // most users expect newest-first on a dashboard (was oldest-first).
   const dateGroups = useMemo(() => {
     const map = new Map<string, BoardItem[]>();
     for (const item of filtered) {
@@ -137,7 +152,7 @@ export function Board() {
       else map.set(item.dateKey, [item]);
     }
     return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => b.localeCompare(a))
       .map(([date, items]) => ({ date, items }));
   }, [filtered]);
 
@@ -319,6 +334,13 @@ export function Board() {
 
       {loading ? (
         <p className="lede board-empty">Loading…</p>
+      ) : loadError ? (
+        <p className="lede board-empty">
+          Couldn't load your board.{' '}
+          <button type="button" className="link-btn" onClick={() => setRetryCount((c) => c + 1)}>
+            Try again
+          </button>
+        </p>
       ) : dateGroups.length === 0 ? (
         <p className="lede board-empty">Nothing here yet.</p>
       ) : (

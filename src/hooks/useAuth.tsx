@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
 
 interface AuthState {
   userId: string | null;
@@ -37,28 +38,63 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
 });
 
+// Almost every signed-in-required page (Home, Create, Detail, Edit,
+// PollOrganize, PollCreate, SplitBillCreate, ClosedItems) gates its entire
+// render on `ready` from this provider — so if bootstrap() below never
+// settles, it's not one broken page, it's the app-wide "everything's
+// stuck until I hard-refresh" behavior testers reported. A hung
+// getSession()/signInAnonymously() call (flaky network, a momentarily
+// locked storage read, a backgrounded tab whose fetch never got a chance
+// to finish) previously blocked `ready` forever, with no timeout and no
+// recovery. This bounds that wait.
+const BOOTSTRAP_TIMEOUT_MS = 10000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let inFlight = false;
 
     async function bootstrap() {
-      const { data } = await supabase.auth.getSession();
-      let session = data.session;
-
-      if (!session) {
-        const { data: signInData, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-          console.error('Anonymous sign-in failed', error);
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        let session = null;
+        // getSession() itself used to be unwrapped — any throw here (not
+        // just a hang) left `ready` false forever via an unhandled
+        // rejection, since bootstrap() was fired-and-forgotten below with
+        // no .catch(). Falls through to the anonymous-session path below
+        // exactly like "no session found" would.
+        try {
+          const { data } = await withTimeout(supabase.auth.getSession(), BOOTSTRAP_TIMEOUT_MS);
+          session = data.session;
+        } catch (err) {
+          console.error('getSession failed or timed out', err);
         }
-        session = signInData?.session ?? null;
-      }
 
-      if (mounted) {
-        setUser(session?.user ?? null);
-        setReady(true);
+        if (!session) {
+          try {
+            const { data: signInData, error } = await withTimeout(supabase.auth.signInAnonymously(), BOOTSTRAP_TIMEOUT_MS);
+            if (error) console.error('Anonymous sign-in failed', error);
+            session = signInData?.session ?? null;
+          } catch (err) {
+            console.error('Anonymous sign-in failed or timed out', err);
+          }
+        }
+
+        // Deliberately still flips `ready` true even if both calls above
+        // failed/timed out — userId stays null (same as a fresh visitor
+        // who hasn't signed in), but every `ready`-gated page can at
+        // least render instead of spinning forever. The visibilitychange
+        // listener below gives it another chance shortly after.
+        if (mounted) {
+          setUser(session?.user ?? null);
+          setReady(true);
+        }
+      } finally {
+        inFlight = false;
       }
     }
 
@@ -83,9 +119,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Re-running bootstrap on every tab-focus is the automatic equivalent
+    // of the "close and reopen the app" workaround testers resorted to —
+    // it's a no-op most of the time (getSession() just returns the same
+    // session already in state, session/user staying referentially
+    // whatever they were), but self-heals the rare case where the
+    // original attempt above hung or failed outright, without ever
+    // flashing a loading state for the common case (nothing here resets
+    // `ready`/`user` before the retry resolves).
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') bootstrap();
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       mounted = false;
       listener.subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
